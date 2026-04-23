@@ -693,7 +693,7 @@ onBeforeUnmount(() => {
   width: 36px;
   height: 36px;
   padding: 0;
-  border: 1.5px solid #dcdfe6;
+  border: 1px solid #dcdfe6;
   border-radius: 6px;
   background: #f5f7fa;
   color: #606266;
