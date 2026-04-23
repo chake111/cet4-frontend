@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getExamList, getExamQuestions, startExam, submitExam } from '@/api/exam'
@@ -31,6 +31,9 @@ const examId = computed(() => Number(route.params.id))
 const recordId = ref(route.query.recordId ? Number(route.query.recordId) : null)
 const examStartTimeStorageKey = computed(() =>
   recordId.value ? `exam_start_time_${recordId.value}` : '',
+)
+const examAnswersStorageKey = computed(() =>
+  recordId.value ? `exam_answers_${recordId.value}` : '',
 )
 
 const safeQuestions = computed(() =>
@@ -272,6 +275,7 @@ const handleSubmit = async (autoSubmit = false) => {
     await submitExam(currentRecordId, payload)
     ElMessage.success('交卷成功')
     localStorage.removeItem(`exam_start_time_${currentRecordId}`)
+    localStorage.removeItem(`exam_answers_${currentRecordId}`)
     await router.replace(`/exam/record/${currentRecordId}/result`)
   } catch (error) {
     hasSubmitted.value = false
@@ -300,6 +304,20 @@ const fetchExamData = async () => {
     const examList = Array.isArray(examListData) ? examListData : []
     examInfo.value = examList.find((item) => Number(item.id) === examId.value) || null
     questions.value = Array.isArray(questionsData) ? questionsData : []
+    const answersStorageKey = examAnswersStorageKey.value
+    if (answersStorageKey) {
+      const savedAnswersRaw = localStorage.getItem(answersStorageKey)
+      if (savedAnswersRaw) {
+        try {
+          const savedAnswers = JSON.parse(savedAnswersRaw)
+          if (savedAnswers && typeof savedAnswers === 'object') {
+            Object.assign(answers, savedAnswers)
+          }
+        } catch (error) {
+          localStorage.removeItem(answersStorageKey)
+        }
+      }
+    }
 
     const duration = Number(examInfo.value?.duration || 0)
     const totalSeconds = duration > 0 ? duration * 60 : 0
@@ -326,6 +344,18 @@ const fetchExamData = async () => {
 }
 
 onMounted(fetchExamData)
+
+watch(
+  answers,
+  (newAnswers) => {
+    const answersStorageKey = examAnswersStorageKey.value
+    if (!answersStorageKey) {
+      return
+    }
+    localStorage.setItem(answersStorageKey, JSON.stringify(newAnswers))
+  },
+  { deep: true },
+)
 
 onBeforeUnmount(() => {
   clearTimer()
@@ -908,4 +938,3 @@ onBeforeUnmount(() => {
   }
 }
 </style>
-
