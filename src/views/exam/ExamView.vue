@@ -29,6 +29,9 @@ const timer = ref(null)
 const remainingSeconds = ref(0)
 const examId = computed(() => Number(route.params.id))
 const recordId = ref(route.query.recordId ? Number(route.query.recordId) : null)
+const examStartTimeStorageKey = computed(() =>
+  recordId.value ? `exam_start_time_${recordId.value}` : '',
+)
 
 const safeQuestions = computed(() =>
   [...questions.value].sort((a, b) => Number(a.questionNo) - Number(b.questionNo)),
@@ -268,6 +271,7 @@ const handleSubmit = async (autoSubmit = false) => {
 
     await submitExam(currentRecordId, payload)
     ElMessage.success('交卷成功')
+    localStorage.removeItem(`exam_start_time_${currentRecordId}`)
     await router.replace(`/exam/record/${currentRecordId}/result`)
   } catch (error) {
     hasSubmitted.value = false
@@ -298,7 +302,20 @@ const fetchExamData = async () => {
     questions.value = Array.isArray(questionsData) ? questionsData : []
 
     const duration = Number(examInfo.value?.duration || 0)
-    remainingSeconds.value = duration > 0 ? duration * 60 : 0
+    const totalSeconds = duration > 0 ? duration * 60 : 0
+    const storageKey = examStartTimeStorageKey.value
+    if (!storageKey || totalSeconds <= 0) {
+      remainingSeconds.value = totalSeconds
+    } else {
+      const savedStartTime = Number(localStorage.getItem(storageKey) || 0)
+      if (savedStartTime > 0) {
+        const elapsedSeconds = Math.floor((Date.now() - savedStartTime) / 1000)
+        remainingSeconds.value = Math.max(totalSeconds - elapsedSeconds, 0)
+      } else {
+        localStorage.setItem(storageKey, String(Date.now()))
+        remainingSeconds.value = totalSeconds
+      }
+    }
 
     startCountDown()
   } catch (error) {
