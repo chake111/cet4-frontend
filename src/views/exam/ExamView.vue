@@ -87,6 +87,11 @@ const readingATokens = computed(() => {
   return readingAData.value.article.split(/(\{\d+\})/g).filter((token) => token !== '')
 })
 
+// 根据题号获取 reading_a 题目的 id（用于导航锚点）
+const getReadingAQuestionId = (questionNo) => {
+  return getQuestionIdByNo('reading_a', questionNo)
+}
+
 const formatRemainTime = computed(() => {
   const hours = Math.floor(remainingSeconds.value / 3600)
   const minutes = Math.floor((remainingSeconds.value % 3600) / 60)
@@ -118,6 +123,66 @@ const normalizeReadingB = (question) => {
   answers[question.id] = normalized
 }
 
+// 解析段落匹配的文章，将段落按字母标识拆分
+// 支持格式：A) 内容、[A] 内容、A. 内容
+const parseReadingBPassage = (passage) => {
+  if (!passage) return []
+
+  // 尝试按 A) 格式拆分（实际数据格式：A) 段落内容\n\nB) 段落内容）
+  const parenMatches = [...passage.matchAll(/(?:^|\n)\s*([A-M])\)\s*/gm)]
+  if (parenMatches.length > 0) {
+    const title = passage.slice(0, parenMatches[0].index).trim()
+    const segments = parenMatches.map((m, i) => {
+      const contentStart = m.index + m[0].length
+      const contentEnd = parenMatches[i + 1]?.index ?? passage.length
+      return {
+        label: m[1],
+        text: passage.slice(contentStart, contentEnd).trim(),
+      }
+    })
+    return title ? [{ label: '', text: title, isTitle: true }, ...segments] : segments
+  }
+
+  // 尝试按 [A] 格式拆分
+  const bracketMatches = [...passage.matchAll(/\[([A-M])\]/g)]
+  if (bracketMatches.length > 0) {
+    const title = passage.slice(0, bracketMatches[0].index).trim()
+    const segments = bracketMatches.map((m, i) => {
+      const contentStart = m.index + m[0].length
+      const contentEnd = bracketMatches[i + 1]?.index ?? passage.length
+      return {
+        label: m[1],
+        text: passage.slice(contentStart, contentEnd).trim(),
+      }
+    })
+    return title ? [{ label: '', text: title, isTitle: true }, ...segments] : segments
+  }
+
+  // 尝试按 A. 格式拆分
+  const dotMatches = [...passage.matchAll(/(?:^|\n)\s*([A-M])\.\s*/gm)]
+  if (dotMatches.length > 0) {
+    const title = passage.slice(0, dotMatches[0].index).trim()
+    const segments = dotMatches.map((m, i) => {
+      const contentStart = m.index + m[0].length
+      const contentEnd = dotMatches[i + 1]?.index ?? passage.length
+      return {
+        label: m[1],
+        text: passage.slice(contentStart, contentEnd).trim(),
+      }
+    })
+    return title ? [{ label: '', text: title, isTitle: true }, ...segments] : segments
+  }
+
+  // 无法解析，返回整体
+  return [{ label: '', text: passage }]
+}
+
+const readingBPassageParsed = computed(() => {
+  const group = groupedQuestions.value.find((g) => g.part === 'reading_b')
+  const passage = group?.questions?.[0]?.passage || ''
+  return parseReadingBPassage(passage)
+})
+
 const shouldShowReadingCPassage = (group, index) => {
   const current = group.questions[index]
   const prev = group.questions[index - 1]
@@ -126,7 +191,7 @@ const shouldShowReadingCPassage = (group, index) => {
     return false
   }
 
-  if (!prev?.passage) {
+  if (index === 0) {
     return true
   }
 
@@ -266,18 +331,37 @@ onBeforeUnmount(() => {
 
     <div v-else class="exam-content">
       <aside class="question-nav">
+        <div class="nav-progress">
+          <div class="nav-progress-text">
+            <span class="nav-progress-answered">{{ answeredCount }}</span>
+            <span class="nav-progress-sep">/</span>
+            <span class="nav-progress-total">{{ totalQuestions }}</span>
+            <span class="nav-progress-label">已作答</span>
+          </div>
+          <div class="nav-progress-bar">
+            <div
+              class="nav-progress-fill"
+              :style="{ width: totalQuestions > 0 ? (answeredCount / totalQuestions * 100) + '%' : '0%' }"
+            />
+          </div>
+        </div>
+        <div class="nav-legend">
+          <span class="legend-item legend-answered"><i />已答</span>
+          <span class="legend-item legend-unanswered"><i />未答</span>
+        </div>
         <div v-for="group in groupedQuestions" :key="group.part" class="nav-group">
-          <h3>{{ group.label }}</h3>
+          <h3 class="nav-group-title">{{ group.label }}</h3>
           <div class="nav-list">
-            <el-button
+            <button
               v-for="question in group.questions"
               :key="question.id"
-              size="small"
-              :type="isAnswered(question) ? 'primary' : 'default'"
+              class="nav-btn"
+              :class="{ 'is-answered': isAnswered(question) }"
+              :title="`第 ${question.questionNo} 题`"
               @click="jumpToQuestion(question.id)"
             >
               {{ question.questionNo }}
-            </el-button>
+            </button>
           </div>
         </div>
       </aside>
@@ -286,23 +370,29 @@ onBeforeUnmount(() => {
         <section v-for="group in groupedQuestions" :key="group.part" class="part-section">
           <h2>{{ group.label }}</h2>
 
+          <!-- 选词填空 reading_a -->
           <template v-if="group.part === 'reading_a' && readingATokens.length">
             <div class="reading-a-article">
               <template v-for="(token, index) in readingATokens" :key="`ra-token-${index}`">
                 <template v-if="/^\{\d+\}$/.test(token)">
-                  <el-select
-                    :model-value="getReadingAAnswer(token.replace(/\{|\}/g, ''))"
-                    placeholder="选择词汇"
-                    class="inline-select"
-                    @update:model-value="setReadingAAnswer(token.replace(/\{|\}/g, ''), $event)"
+                  <span
+                    :id="`question-${getReadingAQuestionId(token.replace(/\{|\}/g, ''))}`"
+                    class="inline-select-anchor"
                   >
-                    <el-option
-                      v-for="word in readingAData.wordBank"
-                      :key="word"
-                      :label="word"
-                      :value="word"
-                    />
-                  </el-select>
+                    <el-select
+                      :model-value="getReadingAAnswer(token.replace(/\{|\}/g, ''))"
+                      placeholder="选择词汇"
+                      class="inline-select"
+                      @update:model-value="setReadingAAnswer(token.replace(/\{|\}/g, ''), $event)"
+                    >
+                      <el-option
+                        v-for="word in readingAData.wordBank"
+                        :key="word"
+                        :label="word"
+                        :value="word"
+                      />
+                    </el-select>
+                  </span>
                 </template>
                 <template v-else>
                   <span>{{ token }}</span>
@@ -311,15 +401,15 @@ onBeforeUnmount(() => {
             </div>
           </template>
 
-          <article
-            v-for="(question, index) in group.questions"
-            :id="`question-${question.id}`"
-            :key="question.id"
-            class="question-card"
-          >
-            <h3>{{ question.questionNo }}. {{ question.content }}</h3>
-
-            <template v-if="group.part === 'writing'">
+          <!-- 写作 writing -->
+          <template v-else-if="group.part === 'writing'">
+            <article
+              v-for="question in group.questions"
+              :id="`question-${question.id}`"
+              :key="question.id"
+              class="question-card"
+            >
+              <h3>{{ question.questionNo }}. {{ question.content }}</h3>
               <el-input
                 v-model="answers[question.id]"
                 type="textarea"
@@ -327,41 +417,85 @@ onBeforeUnmount(() => {
                 placeholder="请输入写作内容"
               />
               <p class="word-count">当前字数：{{ (answers[question.id] || '').length }}</p>
-            </template>
+            </article>
+          </template>
 
-            <template v-else-if="group.part === 'reading_b'">
-              <pre v-if="index === 0 && group.questions[0]?.passage" class="passage-text">{{ group.questions[0].passage }}</pre>
-              <el-input
-                v-model="answers[question.id]"
-                maxlength="1"
-                placeholder="填写段落字母 A-M"
-                @input="normalizeReadingB(question)"
-              />
-            </template>
+          <!-- 段落匹配 reading_b -->
+          <template v-else-if="group.part === 'reading_b'">
+            <!-- 段落文章区域：结构化展示各段落 -->
+            <div v-if="readingBPassageParsed.length" class="reading-b-passage">
+              <!-- 文章标题 -->
+              <template v-for="seg in readingBPassageParsed" :key="seg.label || 'title'">
+                <div v-if="seg.isTitle" class="reading-b-title">{{ seg.text }}</div>
+                <div v-else class="reading-b-paragraph">
+                  <span v-if="seg.label" class="paragraph-label">{{ seg.label }})</span>
+                  <span class="paragraph-text">{{ seg.text }}</span>
+                </div>
+              </template>
+            </div>
+            <!-- 题目列表 -->
+            <div class="reading-b-questions">
+              <article
+                v-for="question in group.questions"
+                :id="`question-${question.id}`"
+                :key="question.id"
+                class="question-card"
+              >
+                <p class="question-stem">{{ question.questionNo }}. {{ question.content }}</p>
+                <el-input
+                  v-model="answers[question.id]"
+                  maxlength="1"
+                  placeholder="填写段落字母 A-M"
+                  class="reading-b-input"
+                  @input="normalizeReadingB(question)"
+                />
+              </article>
+            </div>
+          </template>
 
-            <template v-else-if="group.part === 'reading_c'">
-              <pre
+          <!-- 阅读理解 reading_c -->
+          <template v-else-if="group.part === 'reading_c'">
+            <template v-for="(question, index) in group.questions" :key="question.id">
+              <!-- 文章段落：换文章时单独展示 -->
+              <div
                 v-if="shouldShowReadingCPassage(group, index)"
-                class="passage-text"
-              >{{ question.passage }}</pre>
-              <el-radio-group v-model="answers[question.id]">
-                <el-radio value="A">A. {{ question.optionA }}</el-radio>
-                <el-radio value="B">B. {{ question.optionB }}</el-radio>
-                <el-radio value="C">C. {{ question.optionC }}</el-radio>
-                <el-radio value="D">D. {{ question.optionD }}</el-radio>
-              </el-radio-group>
+                class="passage-block"
+              >
+                <div class="passage-text">{{ question.passage }}</div>
+              </div>
+              <!-- 题目卡片 -->
+              <article
+                :id="`question-${question.id}`"
+                class="question-card"
+              >
+                <p class="question-stem">{{ question.questionNo }}. {{ question.content }}</p>
+                <el-radio-group v-model="answers[question.id]" class="options-group">
+                  <el-radio value="A" class="option-item">A. {{ question.optionA }}</el-radio>
+                  <el-radio value="B" class="option-item">B. {{ question.optionB }}</el-radio>
+                  <el-radio value="C" class="option-item">C. {{ question.optionC }}</el-radio>
+                  <el-radio value="D" class="option-item">D. {{ question.optionD }}</el-radio>
+                </el-radio-group>
+              </article>
             </template>
+          </template>
 
-            <template v-else-if="group.part === 'translation'">
-              <pre class="passage-text">{{ question.content }}</pre>
+          <!-- 翻译 translation -->
+          <template v-else-if="group.part === 'translation'">
+            <article
+              v-for="question in group.questions"
+              :id="`question-${question.id}`"
+              :key="question.id"
+              class="question-card"
+            >
+              <div class="passage-text translation-source">{{ question.questionNo }}. {{ question.content }}</div>
               <el-input
                 v-model="answers[question.id]"
                 type="textarea"
                 :rows="6"
                 placeholder="请输入英文翻译"
               />
-            </template>
-          </article>
+            </article>
+          </template>
         </section>
       </main>
     </div>
@@ -428,24 +562,155 @@ onBeforeUnmount(() => {
   top: 86px;
   max-height: calc(100vh - 110px);
   overflow-y: auto;
-  padding: 12px;
+  padding: 14px 12px;
   background: #fff;
-  border-radius: 8px;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
-.nav-group {
+/* 进度统计 */
+.nav-progress {
+  margin-bottom: 10px;
+}
+
+.nav-progress-text {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  margin-bottom: 6px;
+}
+
+.nav-progress-answered {
+  font-size: 22px;
+  font-weight: 700;
+  color: #409eff;
+  line-height: 1;
+}
+
+.nav-progress-sep {
+  font-size: 14px;
+  color: #c0c4cc;
+}
+
+.nav-progress-total {
+  font-size: 15px;
+  font-weight: 600;
+  color: #606266;
+}
+
+.nav-progress-label {
+  font-size: 12px;
+  color: #909399;
+  margin-left: 4px;
+}
+
+.nav-progress-bar {
+  height: 5px;
+  background: #ebeef5;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.nav-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #409eff, #66b1ff);
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+/* 图例 */
+.nav-legend {
+  display: flex;
+  gap: 12px;
   margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f0f2f5;
 }
 
-.nav-group h3 {
-  margin: 0 0 8px;
-  font-size: 16px;
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #909399;
+}
+
+.legend-item i {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.legend-answered i {
+  background: #409eff;
+}
+
+.legend-unanswered i {
+  background: #f0f2f5;
+  border: 1px solid #dcdfe6;
+}
+
+/* 分组 */
+.nav-group {
+  margin-bottom: 14px;
+}
+
+.nav-group-title {
+  margin: 0 0 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #909399;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .nav-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 5px;
+}
+
+/* 自定义题号按钮 */
+.nav-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1.5px solid #dcdfe6;
+  border-radius: 6px;
+  background: #f5f7fa;
+  color: #606266;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-btn:hover {
+  border-color: #409eff;
+  color: #409eff;
+  background: #ecf5ff;
+}
+
+.nav-btn:active {
+  transform: scale(0.92);
+}
+
+.nav-btn.is-answered {
+  background: #409eff;
+  border-color: #409eff;
+  color: #fff;
+  font-weight: 600;
+}
+
+.nav-btn.is-answered:hover {
+  background: #66b1ff;
+  border-color: #66b1ff;
+  color: #fff;
 }
 
 .question-main {
@@ -465,42 +730,150 @@ onBeforeUnmount(() => {
 }
 
 .question-card {
-  border: 1px solid #ebeef5;
   border-radius: 6px;
-  padding: 14px;
   margin-bottom: 12px;
 }
 
-.question-card h3 {
+.question-stem {
   margin: 0 0 12px;
   font-size: 16px;
-  line-height: 1.6;
+  font-weight: 600;
+  line-height: 1.7;
+  color: #303133;
+}
+
+/* 文章段落块（阅读理解） */
+.passage-block {
+  margin-bottom: 16px;
 }
 
 .passage-text {
   white-space: pre-wrap;
-  background: #f9fafc;
-  border: 1px solid #ebeef5;
-  border-radius: 6px;
-  padding: 12px;
-  margin: 0 0 12px;
-  line-height: 1.6;
+  word-break: break-word;
+  font-family: inherit;
+  font-size: 15px;
+  background: #f4f6fb;
+  border-left: 4px solid #409eff;
+  border-radius: 0 6px 6px 0;
+  padding: 14px 16px;
+  margin: 0;
+  line-height: 1.9;
+  color: #303133;
 }
 
-.reading-a-article {
-  line-height: 2.2;
+/* 阅读理解选项 */
+.options-group {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  width: 100% !important;
+  gap: 10px;
+}
+
+.option-item {
+  display: flex;
+  align-items: flex-start;
+  line-height: 1.6;
+  white-space: normal;
+  height: auto;
+  width: 100%;
+  margin-right: 0 !important;
+}
+
+.option-item :deep(.el-radio__input) {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.option-item :deep(.el-radio__label) {
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.6;
+  vertical-align: top;
+  padding-left: 8px;
+}
+
+/* 段落匹配文章区域 */
+.reading-b-passage {
+  background: #f4f6fb;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid #e4e7ed;
+}
+
+.reading-b-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #303133;
   margin-bottom: 14px;
+  text-align: center;
+}
+
+.reading-b-paragraph {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+  line-height: 1.8;
+  font-size: 15px;
+  color: #303133;
+}
+
+.reading-b-paragraph:last-child {
+  margin-bottom: 0;
+}
+
+.paragraph-label {
+  flex-shrink: 0;
+  font-weight: 700;
+  color: #409eff;
+  font-size: 15px;
+  min-width: 28px;
+}
+
+.paragraph-text {
+  flex: 1;
+}
+
+.reading-b-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.reading-b-input {
+  max-width: 200px;
+}
+
+/* 选词填空 */
+.reading-a-article {
+  line-height: 2.4;
+  margin-bottom: 14px;
+  font-size: 15px;
+  color: #303133;
+}
+
+.inline-select-anchor {
+  display: inline;
+  vertical-align: middle;
 }
 
 .inline-select {
-  width: 120px;
-  margin: 0 6px;
+  width: 130px;
+  margin: 0 4px;
   vertical-align: middle;
+}
+
+/* 翻译原文 */
+.translation-source {
+  font-size: 15px;
+  margin-bottom: 12px;
 }
 
 .word-count {
   margin: 10px 0 0;
   color: #909399;
+  font-size: 13px;
 }
 
 @media (max-width: 992px) {
@@ -512,5 +885,10 @@ onBeforeUnmount(() => {
     position: static;
     max-height: none;
   }
+
+  .reading-b-input {
+    max-width: 100%;
+  }
 }
 </style>
+
