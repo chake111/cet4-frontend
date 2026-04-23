@@ -11,8 +11,24 @@ const router = createRouter({
     },
     {
       path: '/',
-      name: 'home',
-      component: () => import('@/views/HomeView.vue'),
+      redirect: '/exam',
+    },
+    {
+      path: '/exam',
+      name: 'exam-list',
+      component: () => import('@/views/exam/ExamListView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/exam/:id/start',
+      name: 'exam-start',
+      component: () => import('@/views/exam/ExamView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/exam/record/:recordId/result',
+      name: 'exam-result',
+      component: () => import('@/views/exam/ExamResultView.vue'),
       meta: { requiresAuth: true },
     },
   ],
@@ -26,7 +42,7 @@ router.beforeEach((to) => {
   }
 
   if (to.path === '/login' && userStore.token) {
-    return '/'
+    return '/exam'
   }
 
   return true
