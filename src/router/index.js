@@ -71,7 +71,6 @@ router.beforeEach(async (to) => {
         '提示',
         { type: 'warning' },
       )
-      examStore.resetExam()
       return true
     } catch {
       return false
