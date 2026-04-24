@@ -61,6 +61,9 @@ const handleLogin = async () => {
             @keyup.enter="handleLogin"
           />
         </el-form-item>
+        <div class="footer-link">
+          <el-link type="primary" @click="$router.push('/register')">注册</el-link>
+        </div>
         <el-button type="primary" :loading="loading" class="full-width" @click="handleLogin">
           登录
         </el-button>
