@@ -127,7 +127,7 @@ const goHome = () => {
 }
 
 const fetchResult = async () => {
-  const recordId = route.params.recordId
+  const recordId = route.params.recordId || route.params.examId
 
   if (!recordId) {
     ElMessage.error('缺少考试记录 ID')
