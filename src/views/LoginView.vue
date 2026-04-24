@@ -61,13 +61,13 @@ const handleLogin = async () => {
             @keyup.enter="handleLogin"
           />
         </el-form-item>
-        <div class="footer-link">
-          <el-link type="primary" @click="$router.push('/register')">注册</el-link>
-        </div>
         <el-button type="primary" :loading="loading" class="full-width" @click="handleLogin">
           登录
         </el-button>
       </el-form>
+            <div class="footer-link">
+        没有账号？<router-link to="/register">去注册</router-link>
+      </div>
     </el-card>
   </div>
 </template>
@@ -87,5 +87,11 @@ const handleLogin = async () => {
 
 .full-width {
   width: 100%;
+}
+.footer-link {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 14px;
+  color: #606266;
 }
 </style>
