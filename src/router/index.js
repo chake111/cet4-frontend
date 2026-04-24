@@ -12,6 +12,11 @@ const router = createRouter({
       component: () => import('@/views/LoginView.vue'),
     },
     {
+      path: '/register',
+      name: 'register',
+      component: () => import('@/views/RegisterView.vue'),
+    },
+    {
       path: '/',
       redirect: '/exam',
     },
@@ -50,7 +55,7 @@ router.beforeEach(async (to) => {
     return '/login'
   }
 
-  if (to.path === '/login' && userStore.token) {
+  if ((to.path === '/login' || to.path === '/register') && userStore.token) {
     return '/exam'
   }
 
