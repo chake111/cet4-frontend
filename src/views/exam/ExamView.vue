@@ -113,8 +113,6 @@ onUnmounted(() => {
 
 <template>
   <div class="exam-view">
-    <ExamHeader />
-
     <main class="exam-body">
       <component :is="currentStageComponent" :questions="currentQuestions" />
     </main>

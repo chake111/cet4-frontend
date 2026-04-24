@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getExamList, startExam } from '@/api/exam'
 import { useUserStore } from '@/stores/user'
+import ExamHeader from '@/components/exam/ExamHeader.vue'
 
 const router = useRouter()
 const userStore = useUserStore()

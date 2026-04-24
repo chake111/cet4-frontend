@@ -17,10 +17,12 @@ const STAGE_LABEL_MAP = {
 const stageLabel = computed(() => STAGE_LABEL_MAP[examStore.currentStage] || '--')
 
 const remainingSeconds = computed(() => {
-  // 通过依赖本地 tick，确保每秒触发一次重新计算。
-  rerenderTick.value
-  return examStore.remainingSeconds
+  rerenderTick.value // 依赖 tick，确保每秒重算
+  if (!examStore.stageStartedAt || !examStore.stageDuration) return 0
+  const elapsed = Math.floor((Date.now() - examStore.stageStartedAt) / 1000)
+  return Math.max(0, examStore.stageDuration - elapsed)
 })
+
 
 const timeText = computed(() => {
   const minutes = Math.floor(remainingSeconds.value / 60)
