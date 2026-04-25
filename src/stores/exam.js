@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import request from '@/utils/request'
 
 /**
  * CET-4 考试全局状态中枢。
@@ -102,8 +103,20 @@ export const useExamStore = defineStore('exam', {
     async startExam(paperId) {
       this.isLoading = true
       try {
-        // TODO: 任务 1.3 接入 POST /api/exam/start
-        void paperId
+        const response = await request.post('/exam/start', { paperId })
+        const { questionsByStage = {}, startedAt } = response || {}
+
+        this.examId = paperId
+        this.questionsByStage = {
+          writing: questionsByStage.writing || [],
+          listening: questionsByStage.listening || [],
+          reading: questionsByStage.reading || [],
+          translation: questionsByStage.translation || [],
+        }
+        this.stageStartedAt = startedAt ? new Date(startedAt).getTime() : Date.now()
+        this.currentStage = 'writing'
+        this.stageDuration = 1800
+        this.isSubmitted = false
       } finally {
         this.isLoading = false
       }
@@ -134,7 +147,14 @@ export const useExamStore = defineStore('exam', {
       if (!this.answersByStage[stage]) return
       this.answersByStage[stage][questionId] = value
 
-      // TODO: 任务 1.3 补节流 PATCH
+      request
+        .put('/exam/draft', {
+          paperId: this.examId,
+          stage,
+          questionId,
+          answer: value,
+        })
+        .catch(() => {})
     },
 
     /**
@@ -170,8 +190,14 @@ export const useExamStore = defineStore('exam', {
     async submitExam() {
       this.isLoading = true
       try {
-        // TODO: 任务 1.3 接入 POST /api/exam/submit
+        const answers = Object.values(this.answersByStage).reduce((acc, stageAnswers) => ({ ...acc, ...stageAnswers }), {})
+        const response = await request.post('/exam/submit', {
+          paperId: this.examId,
+          answers,
+        })
+
         this.isSubmitted = true
+        return response
       } finally {
         this.isLoading = false
       }
