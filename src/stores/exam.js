@@ -104,9 +104,9 @@ export const useExamStore = defineStore('exam', {
       this.isLoading = true
       try {
         const response = await request.post('/exam/start', { paperId })
-        const { questionsByStage = {}, startedAt } = response || {}
+        const { questionsByStage = {}, startedAt, paperId: returnedPaperId } = response.data || {}
 
-        this.examId = paperId
+        this.examId = returnedPaperId || paperId
         this.questionsByStage = {
           writing: questionsByStage.writing || [],
           listening: questionsByStage.listening || [],
