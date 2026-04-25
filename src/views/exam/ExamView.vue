@@ -12,6 +12,14 @@ const route = useRoute()
 const router = useRouter()
 const examStore = useExamStore()
 
+const STAGE_ORDER = ['writing', 'listening', 'reading', 'translation']
+const STAGE_DURATIONS = {
+  writing: 1800,
+  listening: 1500,
+  reading: 1500,
+  translation: 1200,
+}
+
 const stageComponentMap = {
   writing: WritingStage,
   listening: ListeningStage,
@@ -25,16 +33,15 @@ let timer = null
 
 const currentStageComponent = computed(() => stageComponentMap[examStore.currentStage] || WritingStage)
 
-const isLastStage = computed(() => {
-  const stageOrder = examStore.stageOrder
-  return examStore.currentStage === stageOrder[stageOrder.length - 1]
-})
+const isLastStage = computed(() => examStore.currentStage === STAGE_ORDER[STAGE_ORDER.length - 1])
 
 const nextButtonText = computed(() => (isLastStage.value ? '提交' : '下一阶段'))
 
 const currentQuestions = computed(() => {
   tick.value
-  return examStore.currentQuestions
+  const stage = examStore.currentStage
+  if (!stage) return []
+  return examStore.questionsByStage[stage] || []
 })
 
 const ensureMockExamData = () => {
@@ -60,6 +67,29 @@ const ensureMockExamData = () => {
   })
 }
 
+const goToNextStage = () => {
+  const currentIndex = STAGE_ORDER.indexOf(examStore.currentStage)
+  const nextIndex = currentIndex + 1
+
+  if (currentIndex === -1 || nextIndex >= STAGE_ORDER.length) {
+    return false
+  }
+
+  const nextStage = STAGE_ORDER[nextIndex]
+  examStore.$patch({
+    currentStage: nextStage,
+    stageStartedAt: Date.now(),
+    stageDuration: STAGE_DURATIONS[nextStage],
+  })
+
+  return true
+}
+
+const submitExamAndExit = async () => {
+  await examStore.submitExam()
+  await router.push('/exam')
+}
+
 const handleAutoSwitch = async () => {
   if (!examStore.hasActiveExam || examStore.remainingSeconds > 0 || isAutoSwitching.value) {
     return
@@ -68,12 +98,11 @@ const handleAutoSwitch = async () => {
   isAutoSwitching.value = true
   try {
     if (isLastStage.value) {
-      await examStore.submitExam()
-      await router.push(`/exam/result/${examStore.examId}`)
+      await submitExamAndExit()
       return
     }
 
-    examStore.advanceStage()
+    goToNextStage()
   } finally {
     isAutoSwitching.value = false
   }
@@ -81,12 +110,11 @@ const handleAutoSwitch = async () => {
 
 const handleNext = async () => {
   if (isLastStage.value) {
-    await examStore.submitExam()
-    await router.push(`/exam/result/${examStore.examId}`)
+    await submitExamAndExit()
     return
   }
 
-  examStore.advanceStage()
+  goToNextStage()
 }
 
 onMounted(async () => {
@@ -113,6 +141,8 @@ onUnmounted(() => {
 
 <template>
   <div class="exam-view">
+    <ExamHeader class="exam-header-fixed" />
+
     <main class="exam-body">
       <component :is="currentStageComponent" :questions="currentQuestions" />
     </main>
@@ -127,6 +157,12 @@ onUnmounted(() => {
 .exam-view {
   min-height: 100vh;
   background: #f5f7fa;
+}
+
+.exam-header-fixed {
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
 
 .exam-body {
