@@ -63,7 +63,8 @@ const goToNextStage = () => {
 }
 
 const submitExamAndExit = async () => {
-  const { recordId } = await examStore.submitExam()
+  const result = await examStore.submitExam()
+  const recordId = result?.data?.recordId
   await router.push('/exam/record/' + recordId + '/result')
 }
 

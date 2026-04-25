@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getExamResult } from '@/api/exam'
+import request from '@/utils/request'
 
 const route = useRoute()
 const router = useRouter()
@@ -100,16 +100,12 @@ const objectiveAccuracy = computed(() => {
 const durationText = computed(() => formatDuration(result.value?.startTime, result.value?.submitTime))
 
 const statusText = computed(() => {
-  const status = result.value?.status
-  if (status === 'graded') {
-    return '已批改'
+  const score = result.value?.score
+  if (score === undefined || score === null) {
+    return '--'
   }
 
-  if (status === 'submitted') {
-    return '待批改'
-  }
-
-  return '未知状态'
+  return score > 0 ? '已完成' : '未作答'
 })
 
 const isObjectiveQuestion = (question) => objectiveTypes.includes(question.questionType)
@@ -138,10 +134,10 @@ const fetchResult = async () => {
   loading.value = true
 
   try {
-    const data = await getExamResult(recordId)
-    result.value = data || {}
+    const res = await request.get(`/exam/record/${recordId}/result`)
+    result.value = res?.data || {}
   } catch (error) {
-    ElMessage.error('获取考试结果失败，请稍后重试')
+    ElMessage.error('获取结果失败，请重试')
     result.value = { answers: [] }
   } finally {
     loading.value = false
@@ -169,11 +165,11 @@ onMounted(() => {
           <div class="summary-grid">
             <div class="summary-item">
               <div class="summary-label">考试总分</div>
-              <div class="summary-value">{{ result?.totalScore ?? 0 }} / 710</div>
+              <div class="summary-value">{{ result?.score ?? 0 }} / {{ result?.total ?? 710 }}</div>
             </div>
             <div class="summary-item">
               <div class="summary-label">答题用时</div>
-              <div class="summary-value">{{ durationText }}</div>
+              <div class="summary-value">--</div>
             </div>
             <div class="summary-item">
               <div class="summary-label">客观题正确率</div>
