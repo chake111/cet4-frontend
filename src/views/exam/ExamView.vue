@@ -6,19 +6,13 @@ import WritingStage from '@/components/exam/stages/WritingStage.vue'
 import ListeningStage from '@/components/exam/stages/ListeningStage.vue'
 import ReadingStage from '@/components/exam/stages/ReadingStage.vue'
 import TranslationStage from '@/components/exam/stages/TranslationStage.vue'
-import { useExamStore } from '@/stores/exam'
+import { useExamStore, STAGE_DURATIONS } from '@/stores/exam'
 
 const route = useRoute()
 const router = useRouter()
 const examStore = useExamStore()
 
 const STAGE_ORDER = ['writing', 'listening', 'reading', 'translation']
-const STAGE_DURATIONS = {
-  writing: 1800,
-  listening: 1500,
-  reading: 1500,
-  translation: 1200,
-}
 
 const stageComponentMap = {
   writing: WritingStage,
@@ -45,21 +39,7 @@ const currentQuestions = computed(() => {
 })
 
 const goToNextStage = () => {
-  const currentIndex = STAGE_ORDER.indexOf(examStore.currentStage)
-  const nextIndex = currentIndex + 1
-
-  if (currentIndex === -1 || nextIndex >= STAGE_ORDER.length) {
-    return false
-  }
-
-  const nextStage = STAGE_ORDER[nextIndex]
-  examStore.$patch({
-    currentStage: nextStage,
-    stageStartedAt: Date.now(),
-    stageDuration: STAGE_DURATIONS[nextStage],
-  })
-
-  return true
+  examStore.advanceStage()
 }
 
 const submitExamAndExit = async () => {

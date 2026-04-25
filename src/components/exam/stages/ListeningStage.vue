@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from 'vue'
 import { useExamStore } from '@/stores/exam'
 
 defineProps({
@@ -13,20 +14,46 @@ const examStore = useExamStore()
 const updateAnswer = (questionId, value) => {
   examStore.saveAnswer('listening', questionId, value)
 }
+
+const audioRefs = ref({})
+
+const onAudioEnded = (questionId) => {
+  examStore.markListeningPlayed(questionId)
+}
 </script>
 
 <template>
   <section class="stage-wrap">
-    <!-- TODO 任务 1.4：ListeningAudio 组件 -->
     <article v-for="question in questions" :key="question.id" class="question-card">
+      <!-- 音频播放器 -->
+      <div v-if="question.audioUrl" class="audio-box">
+        <audio
+          :ref="(el) => { if (el) audioRefs[question.id] = el }"
+          :src="question.audioUrl"
+          controls
+          class="audio-player"
+          @ended="onAudioEnded(question.id)"
+        />
+        <el-tag v-if="examStore.listeningPlayed[question.id]" type="success" size="small" class="played-tag">
+          已播放
+        </el-tag>
+      </div>
+      <div v-else class="audio-box">
+        <el-tag type="info" size="small">暂无音频</el-tag>
+      </div>
+
       <h3 class="question-title">{{ question.content?.stem }}</h3>
       <el-radio-group
         :model-value="examStore.answersByStage.listening[question.id] || ''"
         class="option-group"
         @update:model-value="updateAnswer(question.id, $event)"
       >
-        <el-radio v-for="option in question.content?.options?.slice(0, 4) || []" :key="option" :value="option">
-          {{ option }}
+        <el-radio
+          v-for="(option, oi) in question.content?.options?.slice(0, 4) || []"
+          :key="oi"
+          :value="option"
+        >
+          {{ String.fromCharCode(65 + oi) }}. {{ option }}
         </el-radio>
       </el-radio-group>
     </article>
@@ -50,9 +77,27 @@ const updateAnswer = (questionId, value) => {
   background: #fff;
 }
 
+.audio-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #f5f7fa;
+}
+
+.audio-player {
+  width: 100%;
+  max-width: 400px;
+}
+
+.played-tag {
+  flex-shrink: 0;
+}
+
 .question-title {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: #303133;
 }

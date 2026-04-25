@@ -21,6 +21,97 @@ const STAGE_DURATIONS = {
 
 const STAGE_ORDER = ['writing', 'listening', 'reading', 'translation']
 
+/**
+ * 将后端扁平题目结构转换为前端组件期望的嵌套对象结构。
+ *
+ * 后端返回: { content: "题干字符串", optionA/B/C/D: "...", passage: "..." }
+ * 前端期望: { content: { title/stem/options/passage/source/... } }
+ */
+function transformQuestion(q, stage) {
+  const options = [q.optionA, q.optionB, q.optionC, q.optionD].filter(
+    (opt) => opt != null,
+  )
+
+  let contentObj
+
+  switch (stage) {
+    case 'writing':
+      contentObj = { title: q.content }
+      break
+    case 'listening':
+      contentObj = { stem: q.content, options }
+      break
+    case 'reading':
+      if (q.questionType === 'blank_filling') {
+        // 选词填空：passage 是 JSON 字符串，包含 article 和 word_bank
+        let passageData = null
+        try {
+          passageData = q.passage ? JSON.parse(q.passage) : null
+        } catch {
+          passageData = null
+        }
+        contentObj = {
+          stem: q.content,
+          passage: passageData?.article || q.passage,
+          wordBank: passageData?.word_bank || [],
+          type: 'blank_filling',
+        }
+      } else if (q.questionType === 'matching') {
+        // 长篇阅读匹配题
+        contentObj = {
+          stem: q.content,
+          passage: q.passage,
+          type: 'matching',
+        }
+      } else {
+        // 单选题 (reading_c)
+        contentObj = {
+          stem: q.content,
+          passage: q.passage,
+          options,
+          type: 'single_choice',
+        }
+      }
+      break
+    case 'translation':
+      contentObj = { source: q.content }
+      break
+    default:
+      contentObj = { stem: q.content }
+  }
+
+  return { ...q, content: contentObj }
+}
+
+/**
+ * 将同组阅读题的 passage 向下传播。
+ * 后端数据中，同一篇文章的 passage 仅出现在该组第一题上，
+ * 后续题目的 passage 为 null。此函数将 passage 和 wordBank 填充到同组所有题目，
+ * 并为每道题添加 passageGroupId 以标识所属组。
+ */
+function propagateReadingPassages(questions) {
+  let currentPassage = null
+  let currentGroupId = 0
+  let currentWordBank = null
+
+  return questions.map((q) => {
+    if (q.content.passage) {
+      currentPassage = q.content.passage
+      currentGroupId++
+      currentWordBank = q.content.wordBank || null
+    }
+    return {
+      ...q,
+      content: {
+        ...q.content,
+        passage: q.content.passage || currentPassage,
+        wordBank: q.content.wordBank?.length ? q.content.wordBank : currentWordBank,
+      },
+      passageGroupId: currentGroupId,
+    }
+  })
+}
+
 const createInitialState = () => ({
   /** 后端生成的考试会话 ID */
   examId: null,
@@ -108,14 +199,16 @@ export const useExamStore = defineStore('exam', {
 
         this.examId = returnedPaperId || paperId
         this.questionsByStage = {
-          writing: questionsByStage.writing || [],
-          listening: questionsByStage.listening || [],
-          reading: questionsByStage.reading || [],
-          translation: questionsByStage.translation || [],
+          writing: (questionsByStage.writing || []).map((q) => transformQuestion(q, 'writing')),
+          listening: (questionsByStage.listening || []).map((q) => transformQuestion(q, 'listening')),
+          reading: propagateReadingPassages(
+            (questionsByStage.reading || []).map((q) => transformQuestion(q, 'reading')),
+          ),
+          translation: (questionsByStage.translation || []).map((q) => transformQuestion(q, 'translation')),
         }
         this.stageStartedAt = startedAt ? new Date(startedAt).getTime() : Date.now()
         this.currentStage = 'writing'
-        this.stageDuration = 1800
+        this.stageDuration = STAGE_DURATIONS.writing
         this.isSubmitted = false
       } finally {
         this.isLoading = false
