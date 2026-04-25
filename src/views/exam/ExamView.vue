@@ -44,29 +44,6 @@ const currentQuestions = computed(() => {
   return examStore.questionsByStage[stage] || []
 })
 
-const ensureMockExamData = () => {
-  if (examStore.currentStage) {
-    return
-  }
-
-  examStore.$patch({
-    // 仅用于任务 1.2 本地验收，任务 1.3 替换为真实 API
-    examId: 'mock-exam-001',
-    currentStage: 'writing',
-    stageStartedAt: Date.now(),
-    stageDuration: 1800,
-    questionsByStage: {
-      writing: [{ id: 'w1', content: { title: '根据以下提纲，写一篇不少于120词的英语作文。' } }],
-      listening: [
-        { id: 'l1', subType: 'choice', content: { stem: '听力题1', options: ['A. ...', 'B. ...', 'C. ...', 'D. ...'] } },
-        { id: 'l2', subType: 'choice', content: { stem: '听力题2', options: ['A. ...', 'B. ...', 'C. ...', 'D. ...'] } },
-      ],
-      reading: [{ id: 'r1', subType: 'choice', content: { stem: '阅读题1', options: ['A. ...', 'B. ...', 'C. ...', 'D. ...'] } }],
-      translation: [{ id: 't1', content: { source: '请将以下中文翻译成英文：中国是一个历史悠久的国家。' } }],
-    },
-  })
-}
-
 const goToNextStage = () => {
   const currentIndex = STAGE_ORDER.indexOf(examStore.currentStage)
   const nextIndex = currentIndex + 1
@@ -86,8 +63,8 @@ const goToNextStage = () => {
 }
 
 const submitExamAndExit = async () => {
-  await examStore.submitExam()
-  await router.push('/exam')
+  const { recordId } = await examStore.submitExam()
+  await router.push('/exam/record/' + recordId + '/result')
 }
 
 const handleAutoSwitch = async () => {
@@ -119,9 +96,6 @@ const handleNext = async () => {
 
 onMounted(async () => {
   await examStore.startExam(route.params.id)
-
-  // TODO: 任务 1.3 恢复真实 startExam / getExamQuestions API 调用
-  ensureMockExamData()
 
   timer = setInterval(async () => {
     tick.value += 1
