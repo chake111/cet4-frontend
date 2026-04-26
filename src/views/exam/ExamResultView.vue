@@ -72,6 +72,29 @@ const formatDuration = (startTime, submitTime) => {
   return [hours, minutes, seconds].map((item) => String(item).padStart(2, '0')).join(':')
 }
 
+/**
+ * 解析 AI 反馈 JSON 字符串为对象。
+ * 如果解析失败返回 null。
+ */
+const parseAiFeedback = (feedback) => {
+  if (!feedback) return null
+  if (typeof feedback === 'object') return feedback
+  try {
+    return JSON.parse(feedback)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 判断反馈是否为结构化 JSON（包含 overall 等字段）
+ */
+const isStructuredFeedback = (feedback) => {
+  const parsed = parseAiFeedback(feedback)
+  if (!parsed || typeof parsed !== 'object') return false
+  return !!(parsed.overall || parsed.strengths || parsed.weaknesses || parsed.suggestions || parsed.accuracy || parsed.expression)
+}
+
 const sortedAnswers = computed(() => {
   const source = result.value?.answerDetails || []
   return [...source].sort((a, b) => {
@@ -299,7 +322,59 @@ onUnmounted(() => {
                   <el-tag type="warning" size="small">AI评分</el-tag>
                   <span class="ai-score-text">{{ getScoreText(question) }}</span>
                 </div>
-                <div v-if="question.aiFeedback" class="row-item subjective-feedback">
+
+                <!-- 结构化 AI 反馈展示 -->
+                <div v-if="question.aiFeedback && isStructuredFeedback(question.aiFeedback)" class="ai-feedback-panel">
+                  <div class="feedback-header">
+                    <el-icon><i class="el-icon-chat-dot-round" /></el-icon>
+                    <span>AI 评语</span>
+                  </div>
+
+                  <!-- 总体评价 -->
+                  <div v-if="parseAiFeedback(question.aiFeedback)?.overall" class="feedback-section">
+                    <div class="feedback-section-title">📝 总体评价</div>
+                    <div class="feedback-section-content">{{ parseAiFeedback(question.aiFeedback).overall }}</div>
+                  </div>
+
+                  <!-- 优点（写作题） -->
+                  <div v-if="parseAiFeedback(question.aiFeedback)?.strengths?.length" class="feedback-section">
+                    <div class="feedback-section-title">✅ 优点</div>
+                    <ul class="feedback-list">
+                      <li v-for="(item, idx) in parseAiFeedback(question.aiFeedback).strengths" :key="'s'+idx">{{ item }}</li>
+                    </ul>
+                  </div>
+
+                  <!-- 准确性评价（翻译题） -->
+                  <div v-if="parseAiFeedback(question.aiFeedback)?.accuracy" class="feedback-section">
+                    <div class="feedback-section-title">🎯 准确性评价</div>
+                    <div class="feedback-section-content">{{ parseAiFeedback(question.aiFeedback).accuracy }}</div>
+                  </div>
+
+                  <!-- 语言表达评价（翻译题） -->
+                  <div v-if="parseAiFeedback(question.aiFeedback)?.expression" class="feedback-section">
+                    <div class="feedback-section-title">💬 语言表达评价</div>
+                    <div class="feedback-section-content">{{ parseAiFeedback(question.aiFeedback).expression }}</div>
+                  </div>
+
+                  <!-- 问题 -->
+                  <div v-if="parseAiFeedback(question.aiFeedback)?.weaknesses?.length" class="feedback-section">
+                    <div class="feedback-section-title">⚠️ 存在问题</div>
+                    <ul class="feedback-list feedback-list-warning">
+                      <li v-for="(item, idx) in parseAiFeedback(question.aiFeedback).weaknesses" :key="'w'+idx">{{ item }}</li>
+                    </ul>
+                  </div>
+
+                  <!-- 改进建议 -->
+                  <div v-if="parseAiFeedback(question.aiFeedback)?.suggestions?.length" class="feedback-section">
+                    <div class="feedback-section-title">💡 改进建议</div>
+                    <ul class="feedback-list feedback-list-suggestion">
+                      <li v-for="(item, idx) in parseAiFeedback(question.aiFeedback).suggestions" :key="'g'+idx">{{ item }}</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <!-- 非结构化 AI 反馈（兜底：纯文本展示） -->
+                <div v-else-if="question.aiFeedback" class="row-item subjective-feedback">
                   <span class="row-label">AI 反馈：</span>
                   <div class="subjective-content">{{ question.aiFeedback }}</div>
                 </div>
@@ -470,6 +545,69 @@ onUnmounted(() => {
   flex: 1;
   max-width: 100%;
   overflow-wrap: break-word;
+}
+
+/* AI 反馈面板样式 */
+.ai-feedback-panel {
+  margin-top: 12px;
+  padding: 16px;
+  background: #f8f9fb;
+  border-radius: 8px;
+  border: 1px solid #e8ecf1;
+}
+
+.feedback-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #409eff;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e0e6ed;
+}
+
+.feedback-section {
+  margin-bottom: 12px;
+}
+
+.feedback-section:last-child {
+  margin-bottom: 0;
+}
+
+.feedback-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 6px;
+}
+
+.feedback-section-content {
+  font-size: 13px;
+  color: #606266;
+  line-height: 1.7;
+  padding-left: 4px;
+}
+
+.feedback-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  color: #606266;
+  line-height: 1.8;
+}
+
+.feedback-list li {
+  list-style-type: disc;
+}
+
+.feedback-list-warning li {
+  color: #e6a23c;
+}
+
+.feedback-list-suggestion li {
+  color: #409eff;
 }
 
 .empty-wrong {
