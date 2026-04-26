@@ -91,7 +91,7 @@ function renderBlankArticle(article) {
           <el-radio
             v-for="(option, oi) in question.content?.options || []"
             :key="oi"
-            :value="option"
+            :value="String.fromCharCode(65 + oi)"
           >
             {{ String.fromCharCode(65 + oi) }}. {{ option }}
           </el-radio>
