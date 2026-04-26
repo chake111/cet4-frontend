@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useExamStore } from '@/stores/exam'
 
 const props = defineProps({
@@ -17,12 +17,25 @@ const updateAnswer = (questionId, value) => {
 
 const audioRef = ref(null)
 const hasPlayed = ref(false)
+const isPlaying = ref(false)
 
 const onAudioEnded = () => {
   hasPlayed.value = true
+  isPlaying.value = false
   // 标记所有听力题为已播放
   for (const q of props.questions) {
     examStore.markListeningPlayed(q.id)
+  }
+}
+
+const onAudioPlay = () => {
+  isPlaying.value = true
+}
+
+const onAudioPause = () => {
+  // 禁止暂停：播放中暂停时立即恢复
+  if (!hasPlayed.value && audioRef.value) {
+    audioRef.value.play().catch(() => {})
   }
 }
 
@@ -33,6 +46,26 @@ const onAudioEnded = () => {
 const fullAudioUrl = computed(() => {
   if (props.questions.length === 0) return null
   return props.questions[0].audioUrl || null
+})
+
+/** 进入页面自动播放音频 */
+const tryAutoPlay = () => {
+  if (audioRef.value && fullAudioUrl.value && !hasPlayed.value) {
+    audioRef.value.play().catch(() => {
+      // 浏览器可能阻止自动播放，需要用户手动点击播放
+    })
+  }
+}
+
+onMounted(() => {
+  tryAutoPlay()
+})
+
+watch(() => fullAudioUrl.value, async () => {
+  if (fullAudioUrl.value) {
+    await nextTick()
+    tryAutoPlay()
+  }
 })
 
 /**
@@ -83,24 +116,25 @@ const sectionGroups = computed(() => {
 
     <template v-else>
       <!-- 整段听力音频播放器（固定在顶部） -->
-      <div class="audio-section">
         <div class="audio-header">
-          <span class="audio-title">听力音频</span>
           <span v-if="hasPlayed" class="audio-played-tag">已播放</span>
+          <span v-else-if="isPlaying" class="audio-playing-tag">播放中…</span>
+          <span v-else class="audio-waiting-tag" @click="tryAutoPlay">点击播放听力</span>
         </div>
         <div v-if="fullAudioUrl" class="audio-box">
           <audio
             ref="audioRef"
             :src="fullAudioUrl"
-            controls
-            class="audio-player"
+            class="audio-player-hidden"
             @ended="onAudioEnded"
+            @play="onAudioPlay"
+            @pause="onAudioPause"
           />
         </div>
         <div v-else class="audio-box audio-missing">
           <span>该题暂无音频，检查听力资源配置</span>
         </div>
-      </div>
+
 
       <!-- 按 Section 分组展示题目 -->
       <div v-for="group in sectionGroups" :key="group.label" class="section-group">
@@ -150,8 +184,6 @@ const sectionGroups = computed(() => {
   gap: 10px;
   padding: 16px;
   border-radius: var(--r-card);
-  background: var(--c-bg-weak);
-  border: 1px solid var(--c-border);
   margin-bottom: 20px;
   position: sticky;
   top: 60px;
@@ -178,6 +210,35 @@ const sectionGroups = computed(() => {
   background: rgba(22, 163, 74, 0.08);
 }
 
+.audio-playing-tag {
+  font-size: 12px;
+  color: var(--c-accent);
+  padding: 2px 8px;
+  border-radius: var(--r-button);
+  background: rgba(37, 99, 235, 0.08);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.audio-waiting-tag {
+  font-size: 12px;
+  color: var(--c-accent);
+  padding: 4px 12px;
+  border-radius: var(--r-button);
+  background: rgba(37, 99, 235, 0.06);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.audio-waiting-tag:hover {
+  background: rgba(37, 99, 235, 0.12);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 .audio-box {
   display: flex;
   align-items: center;
@@ -189,15 +250,18 @@ const sectionGroups = computed(() => {
   font-size: 14px;
 }
 
-.audio-player {
-  width: 100%;
+.audio-player-hidden {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 /* Section 分组 */
 .section-group {
   display: flex;
   flex-direction: column;
-  gap: 16px;
 }
 
 .section-header {
@@ -205,7 +269,6 @@ const sectionGroups = computed(() => {
   font-weight: 600;
   color: var(--c-accent);
   padding: 8px 12px;
-  background: rgba(37, 99, 235, 0.04);
   border-radius: var(--r-input);
 }
 
@@ -233,6 +296,8 @@ const sectionGroups = computed(() => {
 .option-group {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
   gap: 8px;
 }
 

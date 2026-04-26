@@ -134,7 +134,6 @@ function renderBlankArticle(article) {
 .question-group {
   display: flex;
   flex-direction: column;
-  gap: 16px;
 }
 
 .question-card {
@@ -210,6 +209,8 @@ function renderBlankArticle(article) {
 .option-group {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
   gap: 8px;
 }
 

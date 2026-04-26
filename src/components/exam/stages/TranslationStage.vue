@@ -19,17 +19,10 @@ const updateAnswer = (questionId, value) => {
   <section class="stage-wrap">
     <article v-for="(question, index) in questions" :key="question.id" class="question-card">
       <div class="question-no">Q{{ index + 1 }}</div>
-      <div class="source-box">
-        <p class="source-text">{{ question.content?.source }}</p>
-      </div>
-      <el-input
-        :model-value="examStore.answersByStage.translation[question.id] || ''"
-        type="textarea"
-        :rows="8"
-        placeholder="输入英文译文"
-        class="translation-textarea"
-        @update:model-value="updateAnswer(question.id, $event)"
-      />
+      <p class="source-text">{{ question.content?.source }}</p>
+
+      <el-input :model-value="examStore.answersByStage.translation[question.id] || ''" type="textarea" :rows="8"
+        placeholder="输入英文译文" class="translation-textarea" @update:model-value="updateAnswer(question.id, $event)" />
     </article>
   </section>
 </template>
