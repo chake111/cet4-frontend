@@ -13,11 +13,12 @@ import request from '@/utils/request'
  * 各考试阶段时长（秒）。
  */
 const STAGE_DURATIONS = {
-  writing: 1800,
-  listening: 2100,
-  reading: 2400,
-  translation: 1500,
+  writing: 1800,      // 30 分钟
+  listening: 1500,    // 25 分钟
+  reading: 2700,      // 45 分钟
+  translation: 1500,  // 25 分钟
 }
+
 
 const STAGE_ORDER = ['writing', 'listening', 'reading', 'translation']
 
