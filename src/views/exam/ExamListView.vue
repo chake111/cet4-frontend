@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getExamList, startExam } from '@/api/exam'
+import { getExamList } from '@/api/exam'
 import { useUserStore } from '@/stores/user'
 import ExamHeader from '@/components/exam/ExamHeader.vue'
 
@@ -10,7 +10,6 @@ const router = useRouter()
 const userStore = useUserStore()
 
 const loading = ref(false)
-const startingExamId = ref(null)
 const examList = ref([])
 
 const fetchExamList = async () => {
@@ -25,22 +24,8 @@ const fetchExamList = async () => {
   }
 }
 
-const handleStartExam = async (examId) => {
-  startingExamId.value = examId
-  try {
-    const data = await startExam(examId)
-    const recordId = data?.examRecordId
-
-    if (!recordId) {
-      throw new Error('缺少 examRecordId')
-    }
-
-    router.push(`/exam/${examId}/start?recordId=${recordId}`)
-  } catch (error) {
-    ElMessage.error('开始考试失败，请稍后重试')
-  } finally {
-    startingExamId.value = null
-  }
+const handleStartExam = (examId) => {
+  router.push(`/exam/${examId}/start`)
 }
 
 const handleLogout = async () => {
@@ -83,7 +68,6 @@ onMounted(fetchExamList)
         <div class="card-action">
           <el-button
             type="primary"
-            :loading="startingExamId === exam.id"
             @click="handleStartExam(exam.id)"
           >
             开始考试
