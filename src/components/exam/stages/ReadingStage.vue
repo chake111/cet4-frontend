@@ -170,8 +170,6 @@ function renderBlankArticle(article) {
   margin-bottom: 12px;
   padding: 10px 12px;
   border-radius: var(--r-input);
-  background: var(--c-bg);
-  border: 1px solid var(--c-border);
 }
 
 .word-bank-label {
@@ -218,7 +216,6 @@ function renderBlankArticle(article) {
   display: flex;
   align-items: flex-start;
   padding: 10px 14px;
-  border: 1px solid var(--c-border);
   border-radius: var(--r-input);
   cursor: pointer;
   transition: all 0.15s;

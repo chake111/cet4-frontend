@@ -335,43 +335,29 @@ onUnmounted(() => {
           </div>
 
           <div v-else class="detail-list">
-            <section
-              v-for="group in stageFilteredAnswers"
-              :key="group.stage"
-              class="detail-section"
-            >
+            <section v-for="group in stageFilteredAnswers" :key="group.stage" class="detail-section">
               <h3 class="detail-section-title">{{ group.label }}</h3>
 
               <!-- 客观题：矩阵排列 -->
               <div v-if="group.questions.some(q => isObjectiveQuestion(q))" class="objective-grid">
-                <div
-                  v-for="question in group.questions.filter(q => isObjectiveQuestion(q))"
-                  :key="question.questionId"
-                  class="objective-card"
-                  :class="{
+                <div v-for="question in group.questions.filter(q => isObjectiveQuestion(q))" :key="question.questionId"
+                  class="objective-card" :class="{
                     'card-correct': question.correct === true,
                     'card-wrong': question.correct === false,
-                  }"
-                >
+                  }">
                   <div class="card-header">
                     <div class="card-header-left">
                       <span class="question-no">Q{{ question.questionNo }}</span>
-                      <el-tag size="small" class="question-type-tag">
-                        {{ questionTypeLabelMap[question.questionType] || question.questionType }}
-                      </el-tag>
                     </div>
                   </div>
                   <div class="card-body">
                     <div class="card-row">
                       <span class="card-label">我的</span>
-                      <span
-                        class="card-value"
-                        :class="{
-                          'text-success': question.correct === true,
-                          'text-danger': question.correct === false,
-                          'text-tertiary': normalizeAnswer(question.userAnswer) === '未作答',
-                        }"
-                      >
+                      <span class="card-value" :class="{
+                        'text-success': question.correct === true,
+                        'text-danger': question.correct === false,
+                        'text-tertiary': normalizeAnswer(question.userAnswer) === '未作答',
+                      }">
                         {{ normalizeAnswer(question.userAnswer) }}
                       </span>
                     </div>
@@ -385,16 +371,10 @@ onUnmounted(() => {
 
               <!-- 主观题：列表排列 -->
               <div v-if="group.questions.some(q => isSubjectiveQuestion(q))" class="subjective-list">
-                <div
-                  v-for="question in group.questions.filter(q => isSubjectiveQuestion(q))"
-                  :key="question.questionId"
-                  class="question-item"
-                >
+                <div v-for="question in group.questions.filter(q => isSubjectiveQuestion(q))" :key="question.questionId"
+                  class="question-item">
                   <div class="question-header">
                     <span class="question-no">Q{{ question.questionNo }}</span>
-                    <el-tag size="small" class="question-type-tag">
-                      {{ questionTypeLabelMap[question.questionType] || question.questionType }}
-                    </el-tag>
                   </div>
 
                   <div class="question-row subjective-row">
@@ -408,10 +388,8 @@ onUnmounted(() => {
                   </div>
 
                   <!-- 结构化 AI 反馈 -->
-                  <div
-                    v-if="question.aiFeedback && isStructuredFeedback(question.aiFeedback)"
-                    class="ai-feedback-panel"
-                  >
+                  <div v-if="question.aiFeedback && isStructuredFeedback(question.aiFeedback)"
+                    class="ai-feedback-panel">
                     <div v-if="parseAiFeedback(question.aiFeedback)?.overall" class="feedback-section">
                       <div class="feedback-label">总体评价</div>
                       <div class="feedback-content">{{ parseAiFeedback(question.aiFeedback).overall }}</div>
@@ -420,7 +398,8 @@ onUnmounted(() => {
                     <div v-if="parseAiFeedback(question.aiFeedback)?.strengths?.length" class="feedback-section">
                       <div class="feedback-label">优点</div>
                       <ul class="feedback-list">
-                        <li v-for="(item, idx) in parseAiFeedback(question.aiFeedback).strengths" :key="'s'+idx">{{ item }}</li>
+                        <li v-for="(item, idx) in parseAiFeedback(question.aiFeedback).strengths" :key="'s' + idx">{{ item
+                          }}</li>
                       </ul>
                     </div>
 
@@ -437,14 +416,16 @@ onUnmounted(() => {
                     <div v-if="parseAiFeedback(question.aiFeedback)?.weaknesses?.length" class="feedback-section">
                       <div class="feedback-label">存在问题</div>
                       <ul class="feedback-list">
-                        <li v-for="(item, idx) in parseAiFeedback(question.aiFeedback).weaknesses" :key="'w'+idx">{{ item }}</li>
+                        <li v-for="(item, idx) in parseAiFeedback(question.aiFeedback).weaknesses" :key="'w' + idx">{{
+                          item }}</li>
                       </ul>
                     </div>
 
                     <div v-if="parseAiFeedback(question.aiFeedback)?.suggestions?.length" class="feedback-section">
                       <div class="feedback-label">改进建议</div>
                       <ul class="feedback-list">
-                        <li v-for="(item, idx) in parseAiFeedback(question.aiFeedback).suggestions" :key="'g'+idx">{{ item }}</li>
+                        <li v-for="(item, idx) in parseAiFeedback(question.aiFeedback).suggestions" :key="'g' + idx">{{
+                          item }}</li>
                       </ul>
                     </div>
                   </div>
@@ -647,7 +628,6 @@ onUnmounted(() => {
   font-weight: 600;
   color: var(--c-text-primary);
   padding-bottom: 8px;
-  border-bottom: 2px solid var(--c-accent);
   margin-bottom: 16px;
 }
 
@@ -660,8 +640,6 @@ onUnmounted(() => {
 }
 
 .objective-card {
-  background: var(--c-bg);
-  border: 1px solid var(--c-border);
   padding: 12px;
   transition: box-shadow 0.2s, border-color 0.2s;
   display: flex;

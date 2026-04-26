@@ -215,7 +215,6 @@ const sectionGroups = computed(() => {
   color: var(--c-accent);
   padding: 2px 8px;
   border-radius: var(--r-button);
-  background: rgba(37, 99, 235, 0.08);
   animation: pulse 1.5s ease-in-out infinite;
 }
 
@@ -305,7 +304,6 @@ const sectionGroups = computed(() => {
   display: flex;
   align-items: flex-start;
   padding: 10px 14px;
-  border: 1px solid var(--c-border);
   border-radius: var(--r-input);
   cursor: pointer;
   transition: all 0.15s;
