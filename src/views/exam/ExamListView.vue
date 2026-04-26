@@ -40,6 +40,7 @@ onMounted(fetchExamList)
   <div class="exam-list-page">
     <header class="page-header">
       <h1>英语四级练习平台</h1>
+      <el-button type="primary" plain @click="$router.push('/exam/records')">考试记录</el-button>
       <el-button type="danger" plain @click="handleLogout">退出登录</el-button>
     </header>
 

@@ -11,3 +11,5 @@ export const startExam = (examId) =>
 export const submitExam = (recordId, answers) =>   request.post(`/exam/record/${recordId}/submit`, { answers }).then(res => res.data)
 
 export const getExamResult = (recordId) =>   request.get(`/exam/record/${recordId}/result`).then(res => res.data)
+
+export const getExamRecords = () => request.get('/exam/records').then(res => res.data)
