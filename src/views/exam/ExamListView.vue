@@ -25,7 +25,7 @@ const fetchExamList = async () => {
 }
 
 const handleStartExam = (examId) => {
-  router.push(`/exam/${examId}/start`)
+  router.push(`/exam/${examId}/brief`)
 }
 
 const handleLogout = async () => {

@@ -250,6 +250,10 @@ onUnmounted(() => {
               <div class="summary-label">考试状态</div>
               <div class="summary-value">{{ statusText }}</div>
             </div>
+            <div class="summary-item">
+              <div class="summary-label">考试用时</div>
+              <div class="summary-value">{{ durationText }}</div>
+            </div>
             <div class="summary-action">
               <el-button type="primary" @click="goHome">返回首页</el-button>
             </div>

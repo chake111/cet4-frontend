@@ -27,6 +27,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/exam/:id/brief',
+      name: 'exam-brief',
+      component: () => import('@/views/exam/ExamBriefView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/exam/:id/start',
       name: 'exam-start',
       component: () => import('@/views/exam/ExamView.vue'),
