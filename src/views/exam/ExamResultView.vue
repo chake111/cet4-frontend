@@ -342,51 +342,61 @@ onUnmounted(() => {
             >
               <h3 class="detail-section-title">{{ group.label }}</h3>
 
-              <div
-                v-for="question in group.questions"
-                :key="question.questionId"
-                class="question-item"
-              >
-                <div class="question-header">
-                  <span class="question-no">Q{{ question.questionNo }}</span>
-                  <el-tag size="small" class="question-type-tag">
-                    {{ questionTypeLabelMap[question.questionType] || question.questionType }}
-                  </el-tag>
+              <!-- 客观题：矩阵排列 -->
+              <div v-if="group.questions.some(q => isObjectiveQuestion(q))" class="objective-grid">
+                <div
+                  v-for="question in group.questions.filter(q => isObjectiveQuestion(q))"
+                  :key="question.questionId"
+                  class="objective-card"
+                  :class="{
+                    'card-correct': question.correct === true,
+                    'card-wrong': question.correct === false,
+                  }"
+                >
+                  <div class="card-header">
+                    <div class="card-header-left">
+                      <span class="question-no">Q{{ question.questionNo }}</span>
+                      <el-tag size="small" class="question-type-tag">
+                        {{ questionTypeLabelMap[question.questionType] || question.questionType }}
+                      </el-tag>
+                    </div>
+                  </div>
+                  <div class="card-body">
+                    <div class="card-row">
+                      <span class="card-label">我的</span>
+                      <span
+                        class="card-value"
+                        :class="{
+                          'text-success': question.correct === true,
+                          'text-danger': question.correct === false,
+                          'text-tertiary': normalizeAnswer(question.userAnswer) === '未作答',
+                        }"
+                      >
+                        {{ normalizeAnswer(question.userAnswer) }}
+                      </span>
+                    </div>
+                    <div class="card-row">
+                      <span class="card-label">正确</span>
+                      <span class="card-value text-primary">{{ normalizeAnswer(question.correctAnswer) }}</span>
+                    </div>
+                  </div>
                 </div>
+              </div>
 
-                <!-- 客观题 -->
-                <template v-if="isObjectiveQuestion(question)">
-                  <div class="question-row">
-                    <span class="row-label">我的答案</span>
-                    <span
-                      class="row-value"
-                      :class="{
-                        'text-success': question.correct === true,
-                        'text-danger': question.correct === false,
-                        'text-tertiary': normalizeAnswer(question.userAnswer) === '未作答',
-                      }"
-                    >
-                      {{ normalizeAnswer(question.userAnswer) }}
-                    </span>
+              <!-- 主观题：列表排列 -->
+              <div v-if="group.questions.some(q => isSubjectiveQuestion(q))" class="subjective-list">
+                <div
+                  v-for="question in group.questions.filter(q => isSubjectiveQuestion(q))"
+                  :key="question.questionId"
+                  class="question-item"
+                >
+                  <div class="question-header">
+                    <span class="question-no">Q{{ question.questionNo }}</span>
+                    <el-tag size="small" class="question-type-tag">
+                      {{ questionTypeLabelMap[question.questionType] || question.questionType }}
+                    </el-tag>
                   </div>
-                  <div class="question-row">
-                    <span class="row-label">正确答案</span>
-                    <span class="row-value text-primary">{{ normalizeAnswer(question.correctAnswer) }}</span>
-                  </div>
-                  <div class="question-row">
-                    <span class="row-label">结果</span>
-                    <span v-if="question.correct === true" class="result-correct">正确</span>
-                    <span v-else-if="question.correct === false" class="result-wrong">错误</span>
-                    <span v-else class="result-pending">未判定</span>
-                  </div>
-                  <div class="question-row">
-                    <span class="row-label">得分</span>
-                    <span class="row-value">{{ getScoreText(question) }}</span>
-                  </div>
-                </template>
 
-                <!-- 主观题 -->
-                <template v-else-if="isSubjectiveQuestion(question)">
                   <div class="question-row subjective-row">
                     <span class="row-label">我的答案</span>
                     <div class="subjective-content">{{ normalizeAnswer(question.userAnswer) }}</div>
@@ -443,7 +453,7 @@ onUnmounted(() => {
                   <div v-else-if="question.aiFeedback" class="ai-feedback-plain">
                     {{ question.aiFeedback }}
                   </div>
-                </template>
+                </div>
               </div>
             </section>
           </div>
@@ -496,7 +506,7 @@ onUnmounted(() => {
 
 /* ---- 主体区域 ---- */
 .result-main {
-  max-width: 920px;
+  max-width: 1080px;
   margin: 0 auto;
   padding: 32px 20px;
 }
@@ -639,6 +649,102 @@ onUnmounted(() => {
   padding-bottom: 8px;
   border-bottom: 2px solid var(--c-accent);
   margin-bottom: 16px;
+}
+
+/* ---- 客观题矩阵布局 ---- */
+.objective-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.objective-card {
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  padding: 12px;
+  transition: box-shadow 0.2s, border-color 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.objective-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.objective-card.card-correct {
+  border-left: 3px solid var(--c-success);
+}
+
+.objective-card.card-wrong {
+  border-left: 3px solid var(--c-danger);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.card-result {
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.card-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.card-label {
+  flex-shrink: 0;
+  color: var(--c-text-tertiary);
+  font-size: 12px;
+  min-width: 28px;
+}
+
+.card-value {
+  color: var(--c-text-primary);
+  word-break: break-all;
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-top: 4px;
+  border-top: 1px solid var(--c-border);
+}
+
+.card-score {
+  font-size: 12px;
+  color: var(--c-text-tertiary);
+  font-family: var(--font-mono);
+}
+
+/* ---- 主观题列表布局 ---- */
+.subjective-list {
+  display: grid;
+  gap: 0;
 }
 
 /* ---- 题目项 ---- */
@@ -859,6 +965,12 @@ onUnmounted(() => {
 }
 
 /* ---- 响应式 ---- */
+@media (max-width: 1024px) {
+  .objective-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .result-main {
     padding: 20px 16px;
@@ -880,6 +992,10 @@ onUnmounted(() => {
   .score-value {
     font-size: 36px;
   }
+
+  .objective-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 480px) {
@@ -898,6 +1014,10 @@ onUnmounted(() => {
   .breakdown-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
+  }
+
+  .objective-grid {
+    grid-template-columns: 1fr;
   }
 
   .back-top {
