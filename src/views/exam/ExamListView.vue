@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getExamList } from '@/api/exam'
 import { useUserStore } from '@/stores/user'
-import ExamHeader from '@/components/exam/ExamHeader.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -18,10 +17,24 @@ const fetchExamList = async () => {
     const data = await getExamList()
     examList.value = Array.isArray(data) ? data : []
   } catch (error) {
-    ElMessage.error('获取试卷列表失败，请稍后重试')
+    ElMessage.error('获取试卷列表失败，稍后重试')
   } finally {
     loading.value = false
   }
+}
+
+const formatExamTitle = (exam) => {
+  if (exam.year && exam.month && exam.setNo) {
+    return `${exam.year} 年 ${exam.month} 月 · 第 ${exam.setNo} 套`
+  }
+  return exam.title || ''
+}
+
+const formatExamSubtitle = (exam) => {
+  const parts = []
+  if (exam.duration) parts.push(`${exam.duration} 分钟`)
+  if (exam.totalScore) parts.push(`总分 ${exam.totalScore}`)
+  return parts.join(' · ')
 }
 
 const handleStartExam = (examId) => {
@@ -38,87 +51,130 @@ onMounted(fetchExamList)
 
 <template>
   <div class="exam-list-page">
-    <header class="page-header">
-      <h1>英语四级练习平台</h1>
-      <el-button type="primary" plain @click="$router.push('/exam/records')">考试记录</el-button>
-      <el-button type="danger" plain @click="handleLogout">退出登录</el-button>
+    <header class="top-bar">
+      <span class="brand">CET-4 模拟考试</span>
+      <div class="top-bar-actions">
+        <a class="top-bar-link" @click="$router.push('/exam/records')">考试记录</a>
+        <span class="top-bar-divider">|</span>
+        <a class="top-bar-link" @click="handleLogout">退出</a>
+      </div>
     </header>
 
-    <el-skeleton v-if="loading" :rows="6" animated />
+    <div class="main-area">
+      <el-skeleton v-if="loading" :rows="6" animated />
 
-    <el-empty
-      v-else-if="!examList.length"
-      description="暂无试卷，请稍后再试"
-      class="empty-state"
-    />
+      <el-empty
+        v-else-if="!examList.length"
+        description="暂无试卷"
+      />
 
-    <div v-else class="exam-list">
-      <el-card v-for="exam in examList" :key="exam.id" shadow="hover" class="exam-card">
-        <template #header>
-          <div class="card-header">
-            <h2>{{ exam.title }}</h2>
+      <div v-else class="exam-list">
+        <div
+          v-for="exam in examList"
+          :key="exam.id"
+          class="exam-item"
+        >
+          <div class="exam-item-left">
+            <div class="exam-item-title">{{ formatExamTitle(exam) }}</div>
+            <div class="exam-item-subtitle">{{ formatExamSubtitle(exam) }}</div>
           </div>
-        </template>
-
-        <div class="exam-meta">
-          <p>年份月份套次：{{ exam.year }} 年 {{ exam.month }} 月 第 {{ exam.setNo }} 套</p>
-          <p>考试时长：{{ exam.duration }} 分钟</p>
-          <p>总分：{{ exam.totalScore }}</p>
-        </div>
-
-        <div class="card-action">
-          <el-button
-            type="primary"
-            @click="handleStartExam(exam.id)"
-          >
+          <el-button type="primary" @click="handleStartExam(exam.id)">
             开始考试
           </el-button>
         </div>
-      </el-card>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
 .exam-list-page {
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 24px 20px 40px;
+  min-height: 100vh;
+  background: var(--c-bg);
 }
 
-.page-header {
+.top-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
+  height: 56px;
+  padding: 0 24px;
+  background: var(--c-primary);
+  color: #FFFFFF;
 }
 
-.page-header h1 {
-  margin: 0;
-  font-size: 28px;
+.brand {
+  font-size: 16px;
+  font-weight: 600;
+  color: #FFFFFF;
+}
+
+.top-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.top-bar-link {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.top-bar-link:hover {
+  text-decoration: underline;
+  color: #FFFFFF;
+}
+
+.top-bar-divider {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 14px;
+}
+
+.main-area {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 48px 20px;
 }
 
 .exam-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
 }
 
-.exam-card h2 {
-  margin: 0;
-  font-size: 20px;
+.exam-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 16px;
+  border-bottom: 1px solid var(--c-border);
+  transition: background 0.15s;
+  cursor: default;
 }
 
-.exam-meta p {
-  margin: 8px 0;
-  line-height: 1.6;
+.exam-item:hover {
+  background: var(--c-bg-weak);
 }
 
-.card-action {
-  margin-top: 16px;
+.exam-item:last-child {
+  border-bottom: none;
 }
 
-.empty-state {
-  margin-top: 80px;
+.exam-item-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.exam-item-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--c-text-primary);
+}
+
+.exam-item-subtitle {
+  font-size: 13px;
+  color: var(--c-text-secondary);
 }
 </style>

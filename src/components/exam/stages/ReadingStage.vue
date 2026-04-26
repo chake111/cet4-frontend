@@ -53,7 +53,7 @@ function renderBlankArticle(article) {
     <div v-for="group in groupedQuestions" :key="group.groupId" class="question-group">
       <!-- 文章区域：每组只显示一次 -->
       <div v-if="group.passage" class="passage-box">
-        <h4 class="passage-title">阅读原文</h4>
+        <div class="passage-label">阅读原文</div>
         <!-- 选词填空：显示词库 + 带空位的文章 -->
         <template v-if="group.type === 'blank_filling'">
           <div v-if="group.wordBank.length" class="word-bank">
@@ -76,10 +76,8 @@ function renderBlankArticle(article) {
         :key="question.id"
         class="question-card"
       >
-        <h3 class="question-title">
-          <span class="question-no">{{ question.questionNo }}.</span>
-          {{ question.content?.stem }}
-        </h3>
+        <div class="question-no">Q{{ question.questionNo }}</div>
+        <div class="question-stem">{{ question.content?.stem }}</div>
 
         <!-- 单选题 -->
         <el-radio-group
@@ -88,13 +86,16 @@ function renderBlankArticle(article) {
           class="option-group"
           @update:model-value="updateAnswer(question.id, $event)"
         >
-          <el-radio
+          <label
             v-for="(option, oi) in question.content?.options || []"
             :key="oi"
-            :value="String.fromCharCode(65 + oi)"
+            class="option-item"
+            :class="{ 'option-item--active': examStore.answersByStage.reading[question.id] === String.fromCharCode(65 + oi) }"
+            @click="updateAnswer(question.id, String.fromCharCode(65 + oi))"
           >
-            {{ String.fromCharCode(65 + oi) }}. {{ option }}
-          </el-radio>
+            <span class="option-letter">{{ String.fromCharCode(65 + oi) }}</span>
+            <span class="option-text">{{ option }}</span>
+          </label>
         </el-radio-group>
 
         <!-- 选词填空：输入框 -->
@@ -128,7 +129,6 @@ function renderBlankArticle(article) {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  padding: 16px;
 }
 
 .question-group {
@@ -141,71 +141,110 @@ function renderBlankArticle(article) {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 16px;
-  border-radius: 8px;
-  background: #fff;
 }
 
+/* 文章区域 */
 .passage-box {
-  padding: 16px;
-  border-radius: 8px;
-  background: #f5f7fa;
+  padding: 20px;
+  border-radius: var(--r-card);
+  background: var(--c-bg-weak);
+  border: 1px solid var(--c-border);
+  margin-bottom: 20px;
 }
 
-.passage-title {
-  margin: 0 0 8px;
-  font-size: 14px;
-  color: #409eff;
+.passage-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-accent);
+  margin-bottom: 8px;
 }
 
 .passage-text {
   margin: 0;
   font-size: 14px;
-  line-height: 1.8;
-  color: #606266;
+  line-height: 2;
+  color: var(--c-text-primary);
   white-space: pre-wrap;
 }
 
 .word-bank {
   margin-bottom: 12px;
   padding: 10px 12px;
-  border-radius: 6px;
-  background: #ecf5ff;
+  border-radius: var(--r-input);
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
 }
 
 .word-bank-label {
   font-size: 13px;
   font-weight: 600;
-  color: #409eff;
+  color: var(--c-accent);
 }
 
 .word-chip {
   display: inline-block;
   margin: 4px 6px 4px 0;
   padding: 2px 10px;
-  border-radius: 4px;
-  background: #fff;
-  border: 1px solid #b3d8ff;
+  border-radius: var(--r-button);
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
   font-size: 13px;
-  color: #409eff;
+  color: var(--c-text-primary);
 }
 
-.question-title {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
-}
-
+/* 题号 */
 .question-no {
-  color: #409eff;
-  margin-right: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-accent);
+  margin-bottom: 4px;
 }
 
+.question-stem {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--c-text-primary);
+}
+
+/* 选项 */
 .option-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.option-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 10px 14px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-input);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--c-text-primary);
+}
+
+.option-item:hover {
+  border-color: var(--c-accent);
+  background: rgba(37, 99, 235, 0.04);
+}
+
+.option-item--active {
+  border-color: var(--c-accent);
+  background: rgba(37, 99, 235, 0.06);
+  color: var(--c-accent);
+}
+
+.option-letter {
+  font-weight: 600;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.option-text {
+  line-height: 1.5;
 }
 
 .blank-input-row,
@@ -219,7 +258,7 @@ function renderBlankArticle(article) {
 .matching-label {
   flex-shrink: 0;
   font-size: 14px;
-  color: #606266;
+  color: var(--c-text-secondary);
   white-space: nowrap;
 }
 

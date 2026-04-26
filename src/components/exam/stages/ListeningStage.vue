@@ -86,7 +86,7 @@ const sectionGroups = computed(() => {
       <div class="audio-section">
         <div class="audio-header">
           <span class="audio-title">听力音频</span>
-          <el-tag v-if="hasPlayed" type="success" size="small">已播放完毕</el-tag>
+          <span v-if="hasPlayed" class="audio-played-tag">已播放</span>
         </div>
         <div v-if="fullAudioUrl" class="audio-box">
           <audio
@@ -98,8 +98,7 @@ const sectionGroups = computed(() => {
           />
         </div>
         <div v-else class="audio-box audio-missing">
-          <el-icon><i class="el-icon-warning-outline" /></el-icon>
-          <span>该题暂无音频，请检查听力资源配置</span>
+          <span>该题暂无音频，检查听力资源配置</span>
         </div>
       </div>
 
@@ -108,24 +107,23 @@ const sectionGroups = computed(() => {
         <div class="section-header">{{ group.label }} — {{ group.description }}</div>
 
         <article v-for="question in group.questions" :key="question.id" class="question-card">
-          <h3 class="question-title">
-            <span class="question-no">第 {{ question.questionNo }} 题</span>
-            {{ question.content?.stem }}
-          </h3>
+          <div class="question-no">Q{{ question.questionNo }}</div>
+          <div class="question-stem">{{ question.content?.stem }}</div>
           <el-radio-group
             :model-value="examStore.answersByStage.listening[question.id] || ''"
             class="option-group"
             @update:model-value="updateAnswer(question.id, $event)"
           >
-            <el-radio
+            <label
               v-for="(option, oi) in question.content?.options?.slice(0, 4) || []"
               :key="oi"
-              :value="String.fromCharCode(65 + oi)"
-              class="option-radio"
+              class="option-item"
+              :class="{ 'option-item--active': examStore.answersByStage.listening[question.id] === String.fromCharCode(65 + oi) }"
+              @click="updateAnswer(question.id, String.fromCharCode(65 + oi))"
             >
-              <span class="option-letter">{{ String.fromCharCode(65 + oi) }}.</span>
+              <span class="option-letter">{{ String.fromCharCode(65 + oi) }}</span>
               <span class="option-text">{{ option }}</span>
-            </el-radio>
+            </label>
           </el-radio-group>
         </article>
       </div>
@@ -137,8 +135,7 @@ const sectionGroups = computed(() => {
 .stage-wrap {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 16px;
+  gap: 24px;
 }
 
 .empty-state {
@@ -152,12 +149,13 @@ const sectionGroups = computed(() => {
   flex-direction: column;
   gap: 10px;
   padding: 16px;
-  border-radius: 8px;
-  background: #fff;
+  border-radius: var(--r-card);
+  background: var(--c-bg-weak);
+  border: 1px solid var(--c-border);
+  margin-bottom: 20px;
   position: sticky;
   top: 60px;
   z-index: 10;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .audio-header {
@@ -167,21 +165,27 @@ const sectionGroups = computed(() => {
 }
 
 .audio-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #303133;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-text-primary);
+}
+
+.audio-played-tag {
+  font-size: 12px;
+  color: var(--c-success);
+  padding: 2px 8px;
+  border-radius: var(--r-button);
+  background: rgba(22, 163, 74, 0.08);
 }
 
 .audio-box {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  border-radius: 6px;
 }
 
 .audio-missing {
-  color: #e6a23c;
+  color: var(--c-text-tertiary);
   font-size: 14px;
 }
 
@@ -193,16 +197,16 @@ const sectionGroups = computed(() => {
 .section-group {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .section-header {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
-  color: #409eff;
+  color: var(--c-accent);
   padding: 8px 12px;
-  background: #ecf5ff;
-  border-radius: 6px;
+  background: rgba(37, 99, 235, 0.04);
+  border-radius: var(--r-input);
 }
 
 /* 题目卡片 */
@@ -210,53 +214,55 @@ const sectionGroups = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 16px;
-  border-radius: 8px;
-  background: #fff;
-}
-
-.question-title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: #303133;
-  line-height: 1.6;
 }
 
 .question-no {
-  display: inline-block;
-  min-width: 56px;
-  padding: 2px 8px;
-  margin-right: 8px;
-  border-radius: 4px;
-  background: #ecf5ff;
-  color: #409eff;
   font-size: 13px;
   font-weight: 600;
-  text-align: center;
+  color: var(--c-accent);
+  margin-bottom: 4px;
 }
 
+.question-stem {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--c-text-primary);
+}
+
+/* 选项 */
 .option-group {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
-.option-radio {
+.option-item {
   display: flex;
   align-items: flex-start;
-  padding: 8px 12px;
-  border-radius: 6px;
-  transition: background-color 0.2s;
+  padding: 10px 14px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-input);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--c-text-primary);
 }
 
-.option-radio:hover {
-  background: #f5f7fa;
+.option-item:hover {
+  border-color: var(--c-accent);
+  background: rgba(37, 99, 235, 0.04);
+}
+
+.option-item--active {
+  border-color: var(--c-accent);
+  background: rgba(37, 99, 235, 0.06);
+  color: var(--c-accent);
 }
 
 .option-letter {
   font-weight: 600;
-  margin-right: 6px;
+  margin-right: 8px;
   flex-shrink: 0;
 }
 

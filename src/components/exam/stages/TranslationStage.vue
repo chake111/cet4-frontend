@@ -17,14 +17,17 @@ const updateAnswer = (questionId, value) => {
 
 <template>
   <section class="stage-wrap">
-    <article v-for="question in questions" :key="question.id" class="question-card">
-      <h3 class="question-title">中文原文</h3>
-      <p class="question-desc">{{ question.content?.source }}</p>
+    <article v-for="(question, index) in questions" :key="question.id" class="question-card">
+      <div class="question-no">Q{{ index + 1 }}</div>
+      <div class="source-box">
+        <p class="source-text">{{ question.content?.source }}</p>
+      </div>
       <el-input
         :model-value="examStore.answersByStage.translation[question.id] || ''"
         type="textarea"
         :rows="8"
-        placeholder="请输入英文译文"
+        placeholder="输入英文译文"
+        class="translation-textarea"
         @update:model-value="updateAnswer(question.id, $event)"
       />
     </article>
@@ -35,31 +38,50 @@ const updateAnswer = (questionId, value) => {
 .stage-wrap {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 16px;
+  gap: 24px;
 }
 
 .question-card {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 16px;
-  border-radius: 8px;
-  background: #fff;
 }
 
-.question-title {
-  margin: 0;
-  font-size: 18px;
+.question-no {
+  font-size: 13px;
   font-weight: 600;
-  color: #303133;
+  color: var(--c-accent);
+  margin-bottom: 8px;
 }
 
-.question-desc {
+.source-box {
+  background: var(--c-bg-weak);
+  border-radius: var(--r-card);
+  padding: 16px;
+  border: 1px solid var(--c-border);
+}
+
+.source-text {
   margin: 0;
   font-size: 14px;
-  line-height: 1.7;
-  color: #606266;
+  line-height: 1.8;
+  color: var(--c-text-primary);
   white-space: pre-wrap;
+}
+
+.translation-textarea :deep(.el-textarea__inner) {
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-input);
+  box-shadow: none;
+  font-family: var(--font-family);
+  font-size: 14px;
+  line-height: 1.8;
+  padding: 12px;
+  resize: vertical;
+}
+
+.translation-textarea :deep(.el-textarea__inner:focus) {
+  border-color: var(--c-accent);
+  box-shadow: none;
 }
 </style>

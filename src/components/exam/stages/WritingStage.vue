@@ -17,14 +17,16 @@ const updateAnswer = (questionId, value) => {
 
 <template>
   <section class="stage-wrap">
-    <article v-for="question in questions" :key="question.id" class="question-card">
+    <article v-for="(question, index) in questions" :key="question.id" class="question-card">
+      <div class="question-no">Q{{ index + 1 }}</div>
       <h3 class="question-title">{{ question.content?.title }}</h3>
       <p v-if="question.content?.background" class="question-desc">{{ question.content.background }}</p>
       <el-input
         :model-value="examStore.answersByStage.writing[question.id] || ''"
         type="textarea"
         :rows="10"
-        placeholder="请输入作文"
+        placeholder="输入作文内容"
+        class="writing-textarea"
         @update:model-value="updateAnswer(question.id, $event)"
       />
     </article>
@@ -35,31 +37,51 @@ const updateAnswer = (questionId, value) => {
 .stage-wrap {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 16px;
+  gap: 24px;
 }
 
 .question-card {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 16px;
-  border-radius: 8px;
-  background: #fff;
+}
+
+.question-no {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-accent);
+  margin-bottom: 8px;
 }
 
 .question-title {
   margin: 0;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  line-height: 1.8;
+  color: var(--c-text-primary);
 }
 
 .question-desc {
   margin: 0;
   font-size: 14px;
-  line-height: 1.7;
-  color: #606266;
+  line-height: 1.8;
+  color: var(--c-text-primary);
   white-space: pre-wrap;
+}
+
+.writing-textarea :deep(.el-textarea__inner) {
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-input);
+  box-shadow: none;
+  font-family: var(--font-family);
+  font-size: 14px;
+  line-height: 1.8;
+  padding: 12px;
+  resize: vertical;
+}
+
+.writing-textarea :deep(.el-textarea__inner:focus) {
+  border-color: var(--c-accent);
+  box-shadow: none;
 }
 </style>

@@ -29,7 +29,7 @@ const currentStageComponent = computed(() => stageComponentMap[examStore.current
 
 const isLastStage = computed(() => examStore.currentStage === STAGE_ORDER[STAGE_ORDER.length - 1])
 
-const nextButtonText = computed(() => (isLastStage.value ? '提交' : '下一阶段'))
+const nextButtonText = computed(() => (isLastStage.value ? '交卷' : '下一阶段'))
 
 const currentQuestions = computed(() => {
   tick.value
@@ -98,20 +98,22 @@ onUnmounted(() => {
   <div class="exam-view">
     <ExamHeader class="exam-header-fixed" />
 
-    <main class="exam-body">
-      <component :is="currentStageComponent" :questions="currentQuestions" />
-    </main>
+    <div class="exam-content">
+      <main class="exam-body">
+        <component :is="currentStageComponent" :questions="currentQuestions" />
+      </main>
 
-    <footer class="exam-footer">
-      <el-button type="primary" @click="handleNext">{{ nextButtonText }}</el-button>
-    </footer>
+      <footer class="exam-footer">
+        <el-button type="primary" size="default" @click="handleNext">{{ nextButtonText }}</el-button>
+      </footer>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .exam-view {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: var(--c-bg-weak);
 }
 
 .exam-header-fixed {
@@ -120,26 +122,36 @@ onUnmounted(() => {
   z-index: 20;
 }
 
-.exam-body {
-  max-width: 980px;
-  margin: 20px auto;
-  padding: 0 20px;
+.exam-content {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 24px 20px;
 }
 
 .exam-footer {
   display: flex;
-  justify-content: center;
-  padding: 20px;
-}
-
-:deep(.stage-wrap) {
-  display: grid;
-  gap: 16px;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 0;
+  border-top: 1px solid var(--c-border);
+  margin-top: 24px;
 }
 
 :deep(.question-card) {
-  background: #fff;
-  border-radius: 8px;
-  padding: 16px;
+  background: var(--c-bg);
+  border-radius: var(--r-card);
+  padding: 20px;
+  border: 1px solid var(--c-border);
+}
+
+:deep(.el-button--primary) {
+  background-color: var(--c-accent);
+  border-color: var(--c-accent);
+}
+
+:deep(.el-button--primary:hover) {
+  background-color: var(--c-accent);
+  border-color: var(--c-accent);
+  opacity: 0.9;
 }
 </style>

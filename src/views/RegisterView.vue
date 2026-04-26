@@ -70,7 +70,7 @@ const handleRegister = async () => {
 
     ElMessage.error(res.message || '注册失败')
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || '注册失败，请稍后重试')
+    ElMessage.error(error.response?.data?.message || '注册失败，稍后重试')
   } finally {
     loading.value = false
   }
@@ -78,12 +78,17 @@ const handleRegister = async () => {
 </script>
 
 <template>
-  <div class="login-page">
-    <el-card class="login-card">
-      <h2>注册账号</h2>
+  <div class="register-page">
+    <header class="top-bar">
+      <span class="brand">CET-4 模拟考试</span>
+    </header>
+
+    <div class="main-area">
+      <h1 class="page-title">注册</h1>
+
       <el-form ref="formRef" :model="form" :rules="rules" @submit.prevent>
         <el-form-item prop="username">
-          <el-input v-model="form.username" placeholder="用户名" />
+          <el-input v-model="form.username" placeholder="用户名" size="large" />
         </el-form-item>
         <el-form-item prop="password">
           <el-input
@@ -91,6 +96,7 @@ const handleRegister = async () => {
             type="password"
             show-password
             placeholder="密码"
+            size="large"
           />
         </el-form-item>
         <el-form-item prop="confirmPassword">
@@ -99,6 +105,7 @@ const handleRegister = async () => {
             type="password"
             show-password
             placeholder="确认密码"
+            size="large"
             @keyup.enter="handleRegister"
           />
         </el-form-item>
@@ -106,40 +113,91 @@ const handleRegister = async () => {
           type="primary"
           :loading="loading"
           :disabled="loading"
-          class="full-width"
+          size="large"
+          class="submit-btn"
           @click="handleRegister"
         >
           注册
         </el-button>
       </el-form>
+
       <div class="footer-link">
-        已有账号？<router-link to="/login">去登录</router-link>
+        已有账号？<router-link to="/login">登录</router-link>
       </div>
-    </el-card>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.login-page {
-  height: 100%;
+.register-page {
+  min-height: 100vh;
+  background: var(--c-bg-weak);
+}
+
+.top-bar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  background: #f5f7fa;
+  height: 56px;
+  padding: 0 24px;
+  background: var(--c-primary);
+  color: #FFFFFF;
 }
 
-.login-card {
-  width: 360px;
+.brand {
+  font-size: 15px;
+  font-weight: 600;
+  color: #FFFFFF;
 }
 
-.full-width {
+.main-area {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 80px 20px 40px;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--c-text-primary);
+  margin-bottom: 32px;
+}
+
+.submit-btn {
   width: 100%;
+  border-radius: var(--r-button);
+  font-weight: 500;
+  height: 44px;
 }
 
 .footer-link {
-  margin-top: 16px;
+  margin-top: 20px;
   text-align: center;
-  font-size: 14px;
-  color: #606266;
+  font-size: 13px;
+  color: var(--c-text-secondary);
+}
+
+.footer-link a {
+  color: var(--c-accent);
+  text-decoration: none;
+}
+
+.footer-link a:hover {
+  text-decoration: underline;
+}
+
+.main-area :deep(.el-input__wrapper) {
+  border-radius: var(--r-input);
+  box-shadow: none;
+  border: 1px solid var(--c-border);
+  background: var(--c-bg);
+}
+
+.main-area :deep(.el-input__wrapper:hover) {
+  border-color: var(--c-accent);
+}
+
+.main-area :deep(.el-input__wrapper.is-focus) {
+  border-color: var(--c-accent);
+  box-shadow: 0 0 0 1px var(--c-accent);
 }
 </style>
