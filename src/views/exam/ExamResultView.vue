@@ -32,7 +32,7 @@ const partLabelMap = {
   translation: '翻译',
 }
 
-const objectiveTypes = ['single_choice', 'blank_filling', 'matching', 'listening']
+const objectiveTypes = ['single_choice', 'blank_filling', 'matching']
 const subjectiveTypes = ['writing', 'translation']
 
 const normalizeAnswer = (answer) => {
@@ -448,6 +448,7 @@ onUnmounted(() => {
 .summary-action {
   display: flex;
   justify-content: flex-end;
+  grid-column: 1 / -1;
 }
 
 .filter-bar {
@@ -462,9 +463,7 @@ onUnmounted(() => {
   gap: 20px;
 }
 
-.part-card {
-  border-top: 3px solid #409eff;
-}
+
 
 .part-title {
   font-size: 18px;
