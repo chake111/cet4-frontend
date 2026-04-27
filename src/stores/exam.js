@@ -85,6 +85,29 @@ function transformQuestion(q, stage) {
 }
 
 /**
+ * 为听力题添加 sessionId 和 sharedStem。
+ * 听力题的 content.stem 包含共享题干（如 "Questions 1 and 2 are based on..."），
+ * 相同 stem 的题目属于同一个 session。
+ */
+function propagateListeningSessions(questions) {
+  const stemToSessionId = new Map()
+  let sessionCounter = 0
+
+  return questions.map((q) => {
+    const stem = q.content?.stem || ''
+    if (!stemToSessionId.has(stem)) {
+      stemToSessionId.set(stem, `listening-${sessionCounter}`)
+      sessionCounter++
+    }
+    return {
+      ...q,
+      sessionId: stemToSessionId.get(stem),
+      sharedStem: stem,
+    }
+  })
+}
+
+/**
  * 将同组阅读题的 passage 向下传播。
  * 后端数据中，同一篇文章的 passage 仅出现在该组第一题上，
  * 后续题目的 passage 为 null。此函数将 passage 和 wordBank 填充到同组所有题目，
@@ -109,6 +132,7 @@ function propagateReadingPassages(questions) {
         wordBank: q.content.wordBank?.length ? q.content.wordBank : currentWordBank,
       },
       passageGroupId: currentGroupId,
+      sessionId: `reading-${currentGroupId}`,
     }
   })
 }
@@ -201,7 +225,9 @@ export const useExamStore = defineStore('exam', {
         this.examId = returnedPaperId || paperId
         this.questionsByStage = {
           writing: (questionsByStage.writing || []).map((q) => transformQuestion(q, 'writing')),
-          listening: (questionsByStage.listening || []).map((q) => transformQuestion(q, 'listening')),
+          listening: propagateListeningSessions(
+            (questionsByStage.listening || []).map((q) => transformQuestion(q, 'listening')),
+          ),
           reading: propagateReadingPassages(
             (questionsByStage.reading || []).map((q) => transformQuestion(q, 'reading')),
           ),
@@ -313,3 +339,108 @@ export const useExamStore = defineStore('exam', {
 })
 
 export { STAGE_DURATIONS }
+
+/**
+ * 根据听力题 questionNo 判断所属 Section。
+ */
+export function getListeningSectionInfo(questionNo) {
+  if (questionNo <= 7) return { sectionLabel: 'Section A', sectionTitle: 'News Report' }
+  if (questionNo <= 15) return { sectionLabel: 'Section B', sectionTitle: 'Conversation' }
+  return { sectionLabel: 'Section C', sectionTitle: 'Passage' }
+}
+
+/**
+ * 将题目列表按 sessionId 分组，生成 sessionGroups。
+ * 每组包含 sessionId、sessionTitle、sharedStem、questions。
+ */
+export function buildSessionGroups(questions, stage) {
+  const map = new Map()
+
+  for (const q of questions) {
+    const key = q.sessionId || String(q.id)
+    if (!map.has(key)) {
+      map.set(key, {
+        sessionId: key,
+        sessionTitle: '',
+        sharedStem: q.sharedStem || '',
+        section: stage,
+        sectionLabel: '',
+        sectionTitle: '',
+        questions: [],
+      })
+    }
+    map.get(key).questions.push(q)
+  }
+
+  const sessions = Array.from(map.values())
+
+  if (stage === 'listening') {
+    let newsCount = 0
+    let convCount = 0
+    let passageCount = 0
+    for (const session of sessions) {
+      const firstQ = session.questions[0]
+      const qNo = firstQ.questionNo
+      const sectionInfo = getListeningSectionInfo(qNo)
+      session.sectionLabel = sectionInfo.sectionLabel
+      session.sectionTitle = sectionInfo.sectionTitle
+
+      if (qNo <= 7) {
+        newsCount++
+        session.sessionTitle = `News Report ${newsCount}`
+      } else if (qNo <= 15) {
+        convCount++
+        session.sessionTitle = `Conversation ${convCount}`
+      } else {
+        passageCount++
+        session.sessionTitle = `Passage ${passageCount}`
+      }
+    }
+  }
+
+  if (stage === 'reading') {
+    let blankCount = 0
+    let matchingCount = 0
+    let choiceCount = 0
+    for (const session of sessions) {
+      const type = session.questions[0]?.content?.type
+      if (type === 'blank_filling') {
+        blankCount++
+        session.sessionTitle = `选词填空 ${blankCount}`
+        session.sectionLabel = 'Section A'
+        session.sectionTitle = '选词填空'
+      } else if (type === 'matching') {
+        matchingCount++
+        session.sessionTitle = `段落匹配 ${matchingCount}`
+        session.sectionLabel = 'Section B'
+        session.sectionTitle = '段落匹配'
+      } else {
+        choiceCount++
+        session.sessionTitle = `仔细阅读 ${choiceCount}`
+        session.sectionLabel = 'Section C'
+        session.sectionTitle = '仔细阅读'
+      }
+    }
+  }
+
+  return sessions
+}
+
+/**
+ * 将 sessionGroups 按 section 聚合，生成 sectionGroups。
+ */
+export function buildSectionGroups(sessionGroups) {
+  const map = new Map()
+  for (const session of sessionGroups) {
+    const key = session.sectionLabel || 'default'
+    if (!map.has(key)) {
+      map.set(key, {
+        sectionLabel: key,
+        sectionTitle: session.sectionTitle || '',
+        sessions: [],
+      })
+    }
+    map.get(key).sessions.push(session)
+  }
+  return Array.from(map.values())
+}

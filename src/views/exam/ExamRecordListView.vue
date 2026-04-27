@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
@@ -11,6 +11,7 @@ const userStore = useUserStore()
 
 const loading = ref(false)
 const records = ref([])
+const showBackTop = ref(false)
 
 const fetchRecords = async () => {
   loading.value = true
@@ -54,31 +55,54 @@ const handleLogout = async () => {
   await router.push('/login')
 }
 
-onMounted(fetchRecords)
+const handleScroll = () => {
+  showBackTop.value = window.scrollY > 300
+}
+
+const scrollToTop = () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+onMounted(() => {
+  fetchRecords()
+  window.addEventListener('scroll', handleScroll)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+})
 </script>
 
 <template>
   <div class="exam-record-list" v-loading="loading">
     <header class="page-header">
       <div class="header-left">
-        <el-button @click="$router.push('/exam')" :icon="ArrowLeft" circle />
-        <h1>我的考试记录</h1>
+        <span class="back-link" @click="$router.push('/exam')">← 返回</span>
+        <div class="header-titles">
+          <h1 class="page-title">考试记录</h1>
+          <p class="page-subtitle">查看已完成的 CET-4 模拟考试</p>
+        </div>
       </div>
-      <el-button type="danger" plain @click="handleLogout">退出登录</el-button>
+      <span class="logout-link" @click="handleLogout">退出登录</span>
     </header>
 
     <el-empty v-if="!loading && records.length === 0" description="暂无考试记录" class="empty-state" />
 
-    <el-table v-else :data="records" stripe>
-      <el-table-column prop="title" label="试卷" min-width="200" />
-      <el-table-column label="得分" width="120">
+    <el-table
+      v-else
+      :data="records"
+      class="record-table"
+    >
+      <el-table-column label="试卷" min-width="240">
         <template #default="{ row }">
-          {{ row.totalScore }} / {{ row.fullScore }}
+          <div class="record-title">{{ row.title }}</div>
+          <div class="record-time">{{ formatTime(row.submitTime) }}</div>
         </template>
       </el-table-column>
-      <el-table-column label="考试时间" width="180">
+      <el-table-column label="得分" width="140">
         <template #default="{ row }">
-          {{ formatTime(row.startTime) }}
+          <span class="score-value">{{ row.totalScore }}</span>
+          <span class="score-full">/ {{ row.fullScore }}</span>
         </template>
       </el-table-column>
       <el-table-column label="用时" width="120">
@@ -88,12 +112,19 @@ onMounted(fetchRecords)
       </el-table-column>
       <el-table-column label="操作" width="120" fixed="right">
         <template #default="{ row }">
-          <el-button type="primary" link @click="viewReport(row.recordId)">
-            查看报告
-          </el-button>
+          <span class="report-btn" @click="viewReport(row.recordId)">查看报告</span>
         </template>
       </el-table-column>
     </el-table>
+
+    <!-- 返回顶部 -->
+    <transition name="back-top-fade">
+      <button v-if="showBackTop" class="modern-back-top" @click="scrollToTop" aria-label="回到顶部">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="18 15 12 9 6 15" />
+        </svg>
+      </button>
+    </transition>
   </div>
 </template>
 
@@ -104,25 +135,163 @@ onMounted(fetchRecords)
   padding: 24px 20px 40px;
 }
 
+/* ---- Header ---- */
 .page-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   margin-bottom: 24px;
 }
 
 .header-left {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 16px;
 }
 
-.page-header h1 {
+.back-link {
+  color: #6B7280;
+  font-size: 14px;
+  cursor: pointer;
+  line-height: 28px;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+
+.back-link:hover {
+  color: #111827;
+}
+
+.header-titles {
+  display: flex;
+  flex-direction: column;
+}
+
+.page-title {
   margin: 0;
-  font-size: 28px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.4;
 }
 
+.page-subtitle {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: #6B7280;
+  line-height: 1.4;
+}
+
+.logout-link {
+  color: #6B7280;
+  font-size: 14px;
+  cursor: pointer;
+  line-height: 28px;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+
+.logout-link:hover {
+  color: #111827;
+}
+
+/* ---- Table ---- */
+.record-table {
+  --el-table-border-color: transparent;
+  --el-table-header-bg-color: #F9FAFB;
+  --el-table-row-hover-bg-color: #F9FAFB;
+}
+
+.record-table :deep(.el-table__inner-wrapper::before) {
+  display: none;
+}
+
+.record-table :deep(.el-table__header th) {
+  font-size: 12px;
+  color: #6B7280;
+  font-weight: 400;
+  background-color: #F9FAFB;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.record-table :deep(.el-table__body td) {
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.record-table :deep(.el-table__row) {
+  height: auto;
+}
+
+.record-table :deep(.el-table__body tr:last-child td) {
+  border-bottom: none;
+}
+
+/* ---- Record cell ---- */
+.record-title {
+  color: #111827;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.record-time {
+  color: #6B7280;
+  font-size: 12px;
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* ---- Score ---- */
+.score-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.score-full {
+  font-size: 12px;
+  color: #6B7280;
+  margin-left: 2px;
+}
+
+/* ---- Report button ---- */
+.report-btn {
+  display: inline-block;
+  padding: 4px 12px;
+  font-size: 13px;
+  color: #0F172A;
+  border: 1px solid #D1D5DB;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.report-btn:hover {
+  color: #2563EB;
+  border-color: #2563EB;
+}
+
+/* ---- Empty state ---- */
 .empty-state {
   margin-top: 80px;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 640px) {
+  .exam-record-list {
+    padding: 16px 12px 32px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .logout-link {
+    align-self: flex-start;
+    margin-left: 52px;
+  }
 }
 </style>

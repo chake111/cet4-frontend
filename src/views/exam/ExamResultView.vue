@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import request from '@/utils/request'
+import { getListeningSectionInfo } from '@/stores/exam.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -134,16 +135,6 @@ const groupedAnswers = computed(() => {
   return [...groupMap.values()]
 })
 
-const filteredGroupedAnswers = computed(() => {
-  if (!showWrongOnly.value) return groupedAnswers.value
-  return groupedAnswers.value
-    .map(group => ({
-      ...group,
-      questions: group.questions.filter(q => isObjectiveQuestion(q) && q.correct === false),
-    }))
-    .filter(group => group.questions.length > 0)
-})
-
 const hasWrongAnswers = computed(() => {
   return groupedAnswers.value.some(group =>
     group.questions.some(q => isObjectiveQuestion(q) && q.correct === false),
@@ -172,14 +163,84 @@ const stageGroupedAnswers = computed(() => {
     .map(key => groupMap.get(key))
 })
 
-const stageFilteredAnswers = computed(() => {
-  if (!showWrongOnly.value) return stageGroupedAnswers.value
-  return stageGroupedAnswers.value
-    .map(group => ({
-      ...group,
-      questions: group.questions.filter(q => isObjectiveQuestion(q) && q.correct === false),
-    }))
-    .filter(group => group.questions.length > 0)
+/* ---- 听力/阅读按 session 分组 ---- */
+const buildListeningSessions = (questions) => {
+  const sectionMap = new Map()
+  for (const q of questions) {
+    const info = getListeningSectionInfo(q.questionNo)
+    const key = info.sectionLabel
+    if (!sectionMap.has(key)) {
+      sectionMap.set(key, {
+        sessionId: key,
+        sessionTitle: `${info.sectionLabel} · ${info.sectionTitle}`,
+        questions: [],
+      })
+    }
+    sectionMap.get(key).questions.push(q)
+  }
+  return Array.from(sectionMap.values())
+}
+
+const buildReadingSessions = (questions) => {
+  const partMap = new Map()
+  for (const q of questions) {
+    const partKey = q.part || 'reading'
+    if (!partMap.has(partKey)) {
+      partMap.set(partKey, {
+        sessionId: partKey,
+        sessionTitle: partLabelMap[partKey] || partKey,
+        questions: [],
+      })
+    }
+    partMap.get(partKey).questions.push(q)
+  }
+  return Array.from(partMap.values()).sort((a, b) => {
+    return (partOrder[a.sessionId] || 99) - (partOrder[b.sessionId] || 99)
+  })
+}
+
+/* ---- 阶段 + session 分组（核心计算属性） ---- */
+const stageSessionAnswers = computed(() => {
+  return stageGroupedAnswers.value.map(stage => {
+    const objectiveQuestions = stage.questions.filter(q => isObjectiveQuestion(q))
+    const subjectiveQuestions = stage.questions.filter(q => isSubjectiveQuestion(q))
+
+    let sessions = []
+    if (stage.stage === 'listening' && objectiveQuestions.length > 0) {
+      sessions = buildListeningSessions(objectiveQuestions)
+    } else if (stage.stage === 'reading' && objectiveQuestions.length > 0) {
+      sessions = buildReadingSessions(objectiveQuestions)
+    } else if (objectiveQuestions.length > 0) {
+      sessions = [{ sessionId: 'default', sessionTitle: '', questions: objectiveQuestions }]
+    }
+
+    return {
+      ...stage,
+      sessions,
+      subjectiveQuestions,
+    }
+  })
+})
+
+const stageSessionFilteredAnswers = computed(() => {
+  if (!showWrongOnly.value) return stageSessionAnswers.value
+
+  return stageSessionAnswers.value
+    .map(stage => {
+      const filteredSessions = stage.sessions
+        .map(session => ({
+          ...session,
+          questions: session.questions.filter(q => q.correct === false),
+        }))
+        .filter(session => session.questions.length > 0)
+
+      return {
+        ...stage,
+        sessions: filteredSessions,
+        subjectiveQuestions: [],
+      }
+    })
+    .filter(stage => stage.sessions.length > 0 || stage.subjectiveQuestions.length > 0)
 })
 
 /* ---- 四项能力拆解 ---- */
@@ -330,48 +391,54 @@ onUnmounted(() => {
           </div>
 
           <!-- 详细复盘 -->
-          <div v-if="showWrongOnly && stageFilteredAnswers.length === 0" class="empty-wrong">
+          <div v-if="showWrongOnly && stageSessionFilteredAnswers.length === 0" class="empty-wrong">
             <el-empty description="暂无错题" :image-size="80" />
           </div>
 
           <div v-else class="detail-list">
-            <section v-for="group in stageFilteredAnswers" :key="group.stage" class="detail-section">
+            <section v-for="group in stageSessionFilteredAnswers" :key="group.stage" class="detail-section">
               <h3 class="detail-section-title">{{ group.label }}</h3>
 
-              <!-- 客观题：矩阵排列 -->
-              <div v-if="group.questions.some(q => isObjectiveQuestion(q))" class="objective-grid">
-                <div v-for="question in group.questions.filter(q => isObjectiveQuestion(q))" :key="question.questionId"
-                  class="objective-card" :class="{
-                    'card-correct': question.correct === true,
-                    'card-wrong': question.correct === false,
-                  }">
-                  <div class="card-header">
-                    <div class="card-header-left">
-                      <span class="question-no">Q{{ question.questionNo }}</span>
-                    </div>
+              <!-- 客观题：按 session 分组的卡片 -->
+              <div v-for="session in group.sessions" :key="session.sessionId" class="session-card">
+                <div v-if="session.sessionTitle" class="session-header">
+                  <span class="session-title">{{ session.sessionTitle }}</span>
+                  <span class="session-meta">{{ session.questions.length }} 题</span>
+                </div>
+                <div class="session-question-list">
+                  <!-- 表头 -->
+                  <div class="session-question-header">
+                    <span class="sq-col sq-col-no">题号</span>
+                    <span class="sq-col sq-col-my">我的答案</span>
+                    <span class="sq-col sq-col-correct">正确答案</span>
+                    <span class="sq-col sq-col-score">得分</span>
+                    <span class="sq-col sq-col-status">状态</span>
                   </div>
-                  <div class="card-body">
-                    <div class="card-row">
-                      <span class="card-label">我的</span>
-                      <span class="card-value" :class="{
-                        'text-success': question.correct === true,
-                        'text-danger': question.correct === false,
-                        'text-tertiary': normalizeAnswer(question.userAnswer) === '未作答',
-                      }">
-                        {{ normalizeAnswer(question.userAnswer) }}
-                      </span>
-                    </div>
-                    <div class="card-row">
-                      <span class="card-label">正确</span>
-                      <span class="card-value text-primary">{{ normalizeAnswer(question.correctAnswer) }}</span>
-                    </div>
+                  <!-- 题目行 -->
+                  <div v-for="question in session.questions" :key="question.questionId"
+                    class="session-question-row" :class="{
+                      'row-wrong': question.correct === false,
+                      'row-unanswered': normalizeAnswer(question.userAnswer) === '未作答',
+                    }">
+                    <span class="sq-col sq-col-no">Q{{ question.questionNo }}</span>
+                    <span class="sq-col sq-col-my" :class="{
+                      'text-danger': question.correct === false,
+                      'text-tertiary': normalizeAnswer(question.userAnswer) === '未作答',
+                    }">{{ normalizeAnswer(question.userAnswer) }}</span>
+                    <span class="sq-col sq-col-correct">{{ normalizeAnswer(question.correctAnswer) }}</span>
+                    <span class="sq-col sq-col-score">{{ getScoreText(question) }}</span>
+                    <span class="sq-col sq-col-status">
+                      <span v-if="question.correct === true" class="status-tag tag-correct">正确</span>
+                      <span v-else-if="question.correct === false" class="status-tag tag-wrong">错误</span>
+                      <span v-else class="status-tag tag-unanswered">未作答</span>
+                    </span>
                   </div>
                 </div>
               </div>
 
               <!-- 主观题：列表排列 -->
-              <div v-if="group.questions.some(q => isSubjectiveQuestion(q))" class="subjective-list">
-                <div v-for="question in group.questions.filter(q => isSubjectiveQuestion(q))" :key="question.questionId"
+              <div v-if="group.subjectiveQuestions.length > 0" class="subjective-list">
+                <div v-for="question in group.subjectiveQuestions" :key="question.questionId"
                   class="question-item">
                   <div class="question-header">
                     <span class="question-no">Q{{ question.questionNo }}</span>
@@ -381,12 +448,6 @@ onUnmounted(() => {
                     <span class="row-label">我的答案</span>
                     <div class="subjective-content">{{ normalizeAnswer(question.userAnswer) }}</div>
                   </div>
-                  <div class="question-row">
-                    <span class="row-label">AI 评分</span>
-                    <span class="ai-score-label">AI评分</span>
-                    <span class="ai-score-value">{{ getScoreText(question) }}</span>
-                  </div>
-
                   <!-- 结构化 AI 反馈 -->
                   <div v-if="question.aiFeedback && isStructuredFeedback(question.aiFeedback)"
                     class="ai-feedback-panel">
@@ -443,8 +504,12 @@ onUnmounted(() => {
     </main>
 
     <!-- 返回顶部 -->
-    <transition name="fade">
-      <div v-if="showBackTop" class="back-top" @click="scrollToTop">&#8593;</div>
+    <transition>
+      <button v-if="showBackTop" class="modern-back-top" @click="scrollToTop" aria-label="回到顶部">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="18 15 12 9 6 15" />
+        </svg>
+      </button>
     </transition>
   </div>
 </template>
@@ -631,92 +696,128 @@ onUnmounted(() => {
   margin-bottom: 16px;
 }
 
-/* ---- 客观题矩阵布局 ---- */
-.objective-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
+/* ---- Session 卡片 ---- */
+.session-card {
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-card);
+  margin-bottom: 16px;
+  overflow: hidden;
 }
 
-.objective-card {
-  padding: 12px;
-  transition: box-shadow 0.2s, border-color 0.2s;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.objective-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.objective-card.card-correct {
-  border-left: 3px solid var(--c-success);
-}
-
-.objective-card.card-wrong {
-  border-left: 3px solid var(--c-danger);
-}
-
-.card-header {
+.session-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 4px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--c-border);
+  background: var(--c-bg-weak);
 }
 
-.card-header-left {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-
-.card-result {
+.session-title {
   font-size: 14px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.card-row {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.card-label {
-  flex-shrink: 0;
-  color: var(--c-text-tertiary);
-  font-size: 12px;
-  min-width: 28px;
-}
-
-.card-value {
+  font-weight: 600;
   color: var(--c-text-primary);
-  word-break: break-all;
 }
 
-.card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-top: 4px;
-  border-top: 1px solid var(--c-border);
-}
-
-.card-score {
+.session-meta {
   font-size: 12px;
   color: var(--c-text-tertiary);
+}
+
+.session-question-list {
+  /* no extra padding */
+}
+
+/* ---- Session 内表格行 ---- */
+.session-question-header,
+.session-question-row {
+  display: grid;
+  grid-template-columns: 56px 1fr 1fr 80px 72px;
+  align-items: center;
+  padding: 0 16px;
+  min-width: 480px;
+}
+
+.session-question-header {
+  background: var(--c-bg-weak);
+  font-size: 12px;
+  color: var(--c-text-tertiary);
+  line-height: 32px;
+  font-weight: 500;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.session-question-row {
+  font-size: 13px;
+  color: var(--c-text-primary);
+  line-height: 40px;
+  border-bottom: 1px solid var(--c-border);
+  transition: background 0.15s;
+}
+
+.session-question-row:last-child {
+  border-bottom: none;
+}
+
+.session-question-row.row-wrong {
+  background: #FEF2F2;
+}
+
+.session-question-row.row-unanswered {
+  background: #F9FAFB;
+}
+
+.sq-col-no {
+  font-weight: 600;
+  color: #6B7280;
+}
+
+.sq-col-my {
+  word-break: break-all;
+  padding-right: 8px;
+}
+
+.sq-col-correct {
+  word-break: break-all;
+  padding-right: 8px;
+  font-weight: 500;
+}
+
+.sq-col-score {
   font-family: var(--font-mono);
+  font-size: 12px;
+  color: #6B7280;
+}
+
+.sq-col-status {
+  text-align: center;
+}
+
+/* ---- 状态标签 ---- */
+.status-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.tag-correct {
+  background: #F0FDF4;
+  color: #16A34A;
+}
+
+.tag-wrong {
+  background: #FEF2F2;
+  color: #DC2626;
+}
+
+.tag-unanswered {
+  background: #F3F4F6;
+  color: #6B7280;
 }
 
 /* ---- 主观题列表布局 ---- */
@@ -744,9 +845,8 @@ onUnmounted(() => {
 }
 
 .question-no {
-  font-size: 13px;
   font-weight: 600;
-  color: var(--c-accent);
+  color: #6B7280;
 }
 
 .question-type-tag {
@@ -905,50 +1005,7 @@ onUnmounted(() => {
   padding: 40px 0;
 }
 
-/* ---- 返回顶部 ---- */
-.back-top {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--c-accent);
-  color: #FFFFFF;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
-  transition: opacity 0.2s;
-  z-index: 100;
-  font-size: 18px;
-  font-weight: 700;
-  user-select: none;
-}
-
-.back-top:hover {
-  opacity: 0.85;
-}
-
-/* ---- 过渡动画 ---- */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
 /* ---- 响应式 ---- */
-@media (max-width: 1024px) {
-  .objective-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
 @media (max-width: 768px) {
   .result-main {
     padding: 20px 16px;
@@ -971,8 +1028,9 @@ onUnmounted(() => {
     font-size: 36px;
   }
 
-  .objective-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .session-question-header,
+  .session-question-row {
+    padding: 0 10px;
   }
 }
 
@@ -994,13 +1052,10 @@ onUnmounted(() => {
     gap: 12px;
   }
 
-  .objective-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .back-top {
-    bottom: 16px;
-    right: 16px;
+  .session-question-header,
+  .session-question-row {
+    padding: 0 8px;
+    font-size: 12px;
   }
 }
 </style>
