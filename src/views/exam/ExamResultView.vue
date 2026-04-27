@@ -355,7 +355,6 @@ onUnmounted(() => {
         <template #default>
           <!-- 成绩概览区 -->
           <section class="overview-card">
-            <div class="overview-title">{{ examTitle }}</div>
             <div class="overview-meta">
               <span>{{ submitTimeText }}</span>
               <span class="meta-sep">·</span>
