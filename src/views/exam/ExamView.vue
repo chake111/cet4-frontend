@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import ExamHeader from '@/components/exam/ExamHeader.vue'
 import WritingStage from '@/components/exam/stages/WritingStage.vue'
 import ListeningStage from '@/components/exam/stages/ListeningStage.vue'
@@ -23,13 +24,18 @@ const stageComponentMap = {
 
 const tick = ref(0)
 const isAutoSwitching = ref(false)
+const submitting = ref(false)
+const autoSubmitFailed = ref(false)
 let timer = null
 
 const currentStageComponent = computed(() => stageComponentMap[examStore.currentStage] || WritingStage)
 
 const isLastStage = computed(() => examStore.currentStage === STAGE_ORDER[STAGE_ORDER.length - 1])
 
-const nextButtonText = computed(() => (isLastStage.value ? '交卷' : '下一阶段'))
+const nextButtonText = computed(() => {
+  if (submitting.value) return '提交中...'
+  return isLastStage.value ? '交卷' : '下一阶段'
+})
 
 const currentQuestions = computed(() => {
   tick.value
@@ -43,20 +49,33 @@ const goToNextStage = () => {
 }
 
 const submitExamAndExit = async () => {
-  const result = await examStore.submitExam()
-  const recordId = result?.data?.recordId
-  await router.push('/exam/record/' + recordId + '/result')
+  if (submitting.value) return
+  submitting.value = true
+  try {
+    const result = await examStore.submitExam()
+    const recordId = result?.data?.recordId
+    await router.push('/exam/record/' + recordId + '/result')
+  } catch (error) {
+    ElMessage.error('提交失败，请重试')
+    throw error
+  } finally {
+    submitting.value = false
+  }
 }
 
 const handleAutoSwitch = async () => {
-  if (!examStore.hasActiveExam || examStore.remainingSeconds > 0 || isAutoSwitching.value) {
+  if (!examStore.hasActiveExam || examStore.remainingSeconds > 0 || isAutoSwitching.value || submitting.value || autoSubmitFailed.value) {
     return
   }
 
   isAutoSwitching.value = true
   try {
     if (isLastStage.value) {
-      await submitExamAndExit()
+      try {
+        await submitExamAndExit()
+      } catch {
+        autoSubmitFailed.value = true
+      }
       return
     }
 
@@ -67,8 +86,13 @@ const handleAutoSwitch = async () => {
 }
 
 const handleNext = async () => {
+  if (submitting.value) return
   if (isLastStage.value) {
-    await submitExamAndExit()
+    try {
+      await submitExamAndExit()
+    } catch {
+      // 提交失败提示已在 submitExamAndExit 中处理，此处仅阻止异常冒泡
+    }
     return
   }
 
@@ -104,7 +128,7 @@ onUnmounted(() => {
       </main>
 
       <footer class="exam-footer">
-        <el-button type="primary" size="default" @click="handleNext">{{ nextButtonText }}</el-button>
+        <el-button type="primary" size="default" :loading="submitting" @click="handleNext">{{ nextButtonText }}</el-button>
       </footer>
     </div>
   </div>

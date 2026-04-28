@@ -308,6 +308,10 @@ export const useExamStore = defineStore('exam', {
      * @returns {Promise<void>}
      */
     async submitExam() {
+      // 防御性检查：已提交或正在提交中，直接返回，避免重复请求
+      if (this.isSubmitted || this.isLoading) {
+        return
+      }
       this.isLoading = true
       try {
         const answers = Object.values(this.answersByStage).reduce((acc, stageAnswers) => ({ ...acc, ...stageAnswers }), {})
