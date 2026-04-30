@@ -1,74 +1,29 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed } from 'vue'
 import { useExamStore } from '@/stores/exam'
+import { EXAM_TITLE, STAGE_LABELS, STAGE_LIST, STAGE_ORDER } from '@/constants/exam'
+import { useExamTimer } from '@/composables/useExamTimer'
 
 const examStore = useExamStore()
 
-const rerenderTick = ref(0)
-let intervalId = null
-
-const STAGE_LABEL_MAP = {
-  writing: '写作',
-  listening: '听力',
-  reading: '阅读',
-  translation: '翻译',
-}
-
-const STAGE_ORDER = ['writing', 'listening', 'reading', 'translation']
-
-const stageList = [
-  { key: 'writing', label: '写作' },
-  { key: 'listening', label: '听力' },
-  { key: 'reading', label: '阅读' },
-  { key: 'translation', label: '翻译' },
-]
-
-const stageLabel = computed(() => STAGE_LABEL_MAP[examStore.currentStage] || '--')
+const stageLabel = computed(() => STAGE_LABELS[examStore.currentStage] || '--')
 
 const isStageDone = (idx) => {
   const currentIdx = STAGE_ORDER.indexOf(examStore.currentStage)
   return idx < currentIdx
 }
 
-const remainingSeconds = computed(() => {
-  rerenderTick.value // 依赖 tick，确保每秒重算
-  if (!examStore.stageStartedAt || !examStore.stageDuration) return 0
-  const elapsed = Math.floor((Date.now() - examStore.stageStartedAt) / 1000)
-  return Math.max(0, examStore.stageDuration - elapsed)
-})
-
-
-const timeText = computed(() => {
-  const minutes = Math.floor(remainingSeconds.value / 60)
-  const seconds = remainingSeconds.value % 60
-
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
-})
-
-const isDanger = computed(() => remainingSeconds.value <= 300)
-
-onMounted(() => {
-  intervalId = setInterval(() => {
-    rerenderTick.value += 1
-  }, 1000)
-})
-
-onUnmounted(() => {
-  if (intervalId !== null) {
-    clearInterval(intervalId)
-    intervalId = null
-  }
-})
+const { timeText, isDanger } = useExamTimer(examStore)
 </script>
 
 <template>
   <header class="exam-header">
     <div class="header-left">
-      <span class="brand">CET-4 模拟考试</span>
+      <span class="brand">{{ EXAM_TITLE }}</span>
     </div>
     <div class="header-center">
       <span
-        v-for="(stage, idx) in stageList"
+        v-for="(stage, idx) in STAGE_LIST"
         :key="stage.key"
         class="stage-step"
         :class="{ active: stage.key === examStore.currentStage, done: isStageDone(idx) }"

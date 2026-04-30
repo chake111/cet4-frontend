@@ -2,20 +2,15 @@
 import { onMounted, ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getExamList } from '@/api/exam'
+import { EXAM_TITLE, EXAM_TOTAL_SCORE, STAGE_LIST } from '@/constants/exam'
+import PageTopBar from '@/components/layout/PageTopBar.vue'
+import { examService } from '@/services/examService'
 
 const route = useRoute()
 const router = useRouter()
 
 const loading = ref(false)
 const examInfo = ref(null)
-
-const STAGE_INFO = [
-  { key: 'writing', label: '写作', duration: 30 },
-  { key: 'listening', label: '听力', duration: 25 },
-  { key: 'reading', label: '阅读', duration: 45 },
-  { key: 'translation', label: '翻译', duration: 25 },
-]
 
 const RULES = [
   '考试开始后不可暂停，请确保有充足的时间',
@@ -25,7 +20,7 @@ const RULES = [
   '交卷后不可修改答案',
 ]
 
-const totalDuration = computed(() => STAGE_INFO.reduce((sum, s) => sum + s.duration, 0))
+const totalDuration = computed(() => STAGE_LIST.reduce((sum, s) => sum + s.duration, 0))
 
 const examTitle = computed(() => {
   if (!examInfo.value) return ''
@@ -45,7 +40,7 @@ const fetchExamInfo = async () => {
 
   loading.value = true
   try {
-    const data = await getExamList()
+    const data = await examService.getExamList()
     const list = Array.isArray(data) ? data : []
     examInfo.value = list.find((exam) => String(exam.id) === String(examId)) || null
   } catch (error) {
@@ -68,9 +63,7 @@ onMounted(fetchExamInfo)
 
 <template>
   <div class="exam-brief-page">
-    <header class="top-bar">
-      <span class="brand">CET-4 模拟考试</span>
-    </header>
+    <PageTopBar :title="EXAM_TITLE" />
 
     <div class="main-area">
       <el-skeleton v-if="loading" :rows="8" animated />
@@ -90,7 +83,7 @@ onMounted(fetchExamInfo)
           </div>
           <div v-if="examInfo" class="info-row">
             <span class="info-label">总分</span>
-            <span class="info-value">{{ examInfo.totalScore || 710 }}</span>
+            <span class="info-value">{{ examInfo.totalScore || EXAM_TOTAL_SCORE }}</span>
           </div>
         </div>
 
@@ -100,7 +93,7 @@ onMounted(fetchExamInfo)
         <div class="flow-section">
           <h2 class="section-title">考试流程</h2>
           <div class="flow-steps">
-            <template v-for="(stage, index) in STAGE_INFO" :key="stage.key">
+            <template v-for="(stage, index) in STAGE_LIST" :key="stage.key">
               <div class="flow-step">
                 <span class="step-num">{{ index + 1 }}</span>
                 <div class="step-info">
@@ -108,7 +101,7 @@ onMounted(fetchExamInfo)
                   <span class="step-duration">{{ stage.duration }} 分钟</span>
                 </div>
               </div>
-              <span v-if="index < STAGE_INFO.length - 1" class="step-arrow">&rarr;</span>
+              <span v-if="index < STAGE_LIST.length - 1" class="step-arrow">&rarr;</span>
             </template>
           </div>
         </div>
@@ -140,21 +133,6 @@ onMounted(fetchExamInfo)
 .exam-brief-page {
   min-height: 100vh;
   background: var(--c-bg);
-}
-
-.top-bar {
-  display: flex;
-  align-items: center;
-  height: 56px;
-  padding: 0 24px;
-  background: var(--c-primary);
-  color: #FFFFFF;
-}
-
-.brand {
-  font-size: 16px;
-  font-weight: 600;
-  color: #FFFFFF;
 }
 
 .main-area {

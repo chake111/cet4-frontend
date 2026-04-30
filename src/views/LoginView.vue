@@ -2,7 +2,8 @@
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import request from '@/utils/request'
+import AuthLayout from '@/components/layout/AuthLayout.vue'
+import { authService } from '@/services/authService'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
@@ -23,7 +24,7 @@ const handleLogin = async () => {
   loading.value = true
 
   try {
-    const res = await request.post('/auth/login', {
+    const res = await authService.login({
       username: form.username,
       password: form.password,
     })
@@ -45,67 +46,35 @@ const handleLogin = async () => {
 </script>
 
 <template>
-  <div class="login-page">
-    <header class="top-bar">
-      <span class="brand">CET-4 模拟考试</span>
-    </header>
+  <AuthLayout>
+    <h1 class="page-title">登录</h1>
 
-    <div class="main-area">
-      <h1 class="page-title">登录</h1>
+    <el-form @submit.prevent>
+      <el-form-item>
+        <el-input v-model="form.username" placeholder="用户名" size="large" />
+      </el-form-item>
+      <el-form-item>
+        <el-input
+          v-model="form.password"
+          type="password"
+          show-password
+          placeholder="密码"
+          size="large"
+          @keyup.enter="handleLogin"
+        />
+      </el-form-item>
+      <el-button type="primary" :loading="loading" size="large" class="submit-btn" @click="handleLogin">
+        登录
+      </el-button>
+    </el-form>
 
-      <el-form @submit.prevent>
-        <el-form-item>
-          <el-input v-model="form.username" placeholder="用户名" size="large" />
-        </el-form-item>
-        <el-form-item>
-          <el-input
-            v-model="form.password"
-            type="password"
-            show-password
-            placeholder="密码"
-            size="large"
-            @keyup.enter="handleLogin"
-          />
-        </el-form-item>
-        <el-button type="primary" :loading="loading" size="large" class="submit-btn" @click="handleLogin">
-          登录
-        </el-button>
-      </el-form>
-
-      <div class="footer-link">
-        没有账号？<router-link to="/register">注册</router-link>
-      </div>
+    <div class="footer-link">
+      没有账号？<router-link to="/register">注册</router-link>
     </div>
-  </div>
+  </AuthLayout>
 </template>
 
 <style scoped>
-.login-page {
-  min-height: 100vh;
-  background: var(--c-bg-weak);
-}
-
-.top-bar {
-  display: flex;
-  align-items: center;
-  height: 56px;
-  padding: 0 24px;
-  background: var(--c-primary);
-  color: #FFFFFF;
-}
-
-.brand {
-  font-size: 15px;
-  font-weight: 600;
-  color: #FFFFFF;
-}
-
-.main-area {
-  max-width: 400px;
-  margin: 0 auto;
-  padding: 80px 20px 40px;
-}
-
 .page-title {
   font-size: 24px;
   font-weight: 700;
@@ -136,19 +105,4 @@ const handleLogin = async () => {
   text-decoration: underline;
 }
 
-.main-area :deep(.el-input__wrapper) {
-  border-radius: var(--r-input);
-  box-shadow: none;
-  border: 1px solid var(--c-border);
-  background: var(--c-bg);
-}
-
-.main-area :deep(.el-input__wrapper:hover) {
-  border-color: var(--c-accent);
-}
-
-.main-area :deep(.el-input__wrapper.is-focus) {
-  border-color: var(--c-accent);
-  box-shadow: 0 0 0 1px var(--c-accent);
-}
 </style>

@@ -1,238 +1,87 @@
 import { defineStore } from 'pinia'
-import request from '@/utils/request'
-
-/**
- * CET-4 考试全局状态中枢。
- *
- * 设计意图：集中管理“考试进行中”所需的会话、阶段、题目、作答与提交流程状态，
- * 为后续任务接入真实后端 API、断线续考恢复、答题节流上报与听力播放限制提供统一数据源。
- * 本文件当前仅实现本地状态逻辑与 API 占位，不包含真实网络请求。
- */
-
-/**
- * 各考试阶段时长（秒）。
- */
-const STAGE_DURATIONS = {
-  writing: 1800,      // 30 分钟
-  listening: 1500,    // 25 分钟
-  reading: 2700,      // 45 分钟
-  translation: 1500,  // 25 分钟
-}
-
-
-const STAGE_ORDER = ['writing', 'listening', 'reading', 'translation']
-
-/**
- * 将后端扁平题目结构转换为前端组件期望的嵌套对象结构。
- *
- * 后端返回: { content: "题干字符串", optionA/B/C/D: "...", passage: "..." }
- * 前端期望: { content: { title/stem/options/passage/source/... } }
- */
-function transformQuestion(q, stage) {
-  const options = [q.optionA, q.optionB, q.optionC, q.optionD].filter(
-    (opt) => opt != null,
-  )
-
-  let contentObj
-
-  switch (stage) {
-    case 'writing':
-      contentObj = { title: q.content }
-      break
-    case 'listening':
-      contentObj = { stem: q.content, options }
-      break
-    case 'reading':
-      if (q.questionType === 'blank_filling') {
-        // 选词填空：passage 是 JSON 字符串，包含 article 和 word_bank
-        let passageData = null
-        try {
-          passageData = q.passage ? JSON.parse(q.passage) : null
-        } catch {
-          passageData = null
-        }
-        contentObj = {
-          stem: q.content,
-          passage: passageData?.article || q.passage,
-          wordBank: passageData?.word_bank || [],
-          type: 'blank_filling',
-        }
-      } else if (q.questionType === 'matching') {
-        // 长篇阅读匹配题
-        contentObj = {
-          stem: q.content,
-          passage: q.passage,
-          type: 'matching',
-        }
-      } else {
-        // 单选题 (reading_c)
-        contentObj = {
-          stem: q.content,
-          passage: q.passage,
-          options,
-          type: 'single_choice',
-        }
-      }
-      break
-    case 'translation':
-      contentObj = { source: q.content }
-      break
-    default:
-      contentObj = { stem: q.content }
-  }
-
-  return { ...q, content: contentObj }
-}
-
-/**
- * 为听力题添加 sessionId 和 sharedStem。
- * 听力题的 content.stem 包含共享题干（如 "Questions 1 and 2 are based on..."），
- * 相同 stem 的题目属于同一个 session。
- */
-function propagateListeningSessions(questions) {
-  const stemToSessionId = new Map()
-  let sessionCounter = 0
-
-  return questions.map((q) => {
-    const stem = q.content?.stem || ''
-    if (!stemToSessionId.has(stem)) {
-      stemToSessionId.set(stem, `listening-${sessionCounter}`)
-      sessionCounter++
-    }
-    return {
-      ...q,
-      sessionId: stemToSessionId.get(stem),
-      sharedStem: stem,
-    }
-  })
-}
-
-/**
- * 将同组阅读题的 passage 向下传播。
- * 后端数据中，同一篇文章的 passage 仅出现在该组第一题上，
- * 后续题目的 passage 为 null。此函数将 passage 和 wordBank 填充到同组所有题目，
- * 并为每道题添加 passageGroupId 以标识所属组。
- */
-function propagateReadingPassages(questions) {
-  let currentPassage = null
-  let currentGroupId = 0
-  let currentWordBank = null
-
-  return questions.map((q) => {
-    if (q.content.passage) {
-      currentPassage = q.content.passage
-      currentGroupId++
-      currentWordBank = q.content.wordBank || null
-    }
-    return {
-      ...q,
-      content: {
-        ...q.content,
-        passage: q.content.passage || currentPassage,
-        wordBank: q.content.wordBank?.length ? q.content.wordBank : currentWordBank,
-      },
-      passageGroupId: currentGroupId,
-      sessionId: `reading-${currentGroupId}`,
-    }
-  })
-}
+import { STAGE_DURATIONS, STAGE_ORDER } from '@/constants/exam'
+import { examService } from '@/services/examService'
+import {
+  propagateListeningSessions,
+  propagateReadingPassages,
+  transformQuestion,
+} from '@/utils/questionTransform'
+export { buildSectionGroups, buildSessionGroups, getListeningSectionInfo } from '@/utils/examGrouping'
+export { STAGE_DURATIONS }
 
 const createInitialState = () => ({
-  /** 后端生成的考试会话 ID */
   examId: null,
-  /** 试卷基础信息：{ paperId, year, month, setNo, totalScore, totalDuration } */
   paperMeta: null,
-  /** 当前阶段：'writing' | 'listening' | 'reading' | 'translation' | null */
   currentStage: null,
-  /** 当前阶段开始时间戳（ms），用于计算剩余时间 */
   stageStartedAt: null,
-  /** 当前阶段总时长（秒） */
   stageDuration: 0,
-  /** 按阶段分组的题目列表 */
   questionsByStage: {
     writing: [],
     listening: [],
     reading: [],
     translation: [],
   },
-  /** 按阶段分组的作答草稿 */
   answersByStage: {
     writing: {},
     listening: {},
     reading: {},
     translation: {},
   },
-  /** 听力题播放完成标记：{ [questionId]: true } */
   listeningPlayed: {},
-  /** 是否已交卷 */
   isSubmitted: false,
-  /** 接口调用加载状态 */
   isLoading: false,
+})
+
+const normalizeQuestionsByStage = (questionsByStage = {}) => ({
+  writing: (questionsByStage.writing || []).map((q) => transformQuestion(q, 'writing')),
+  listening: propagateListeningSessions(
+    (questionsByStage.listening || []).map((q) => transformQuestion(q, 'listening')),
+  ),
+  reading: propagateReadingPassages(
+    (questionsByStage.reading || []).map((q) => transformQuestion(q, 'reading')),
+  ),
+  translation: (questionsByStage.translation || []).map((q) => transformQuestion(q, 'translation')),
 })
 
 export const useExamStore = defineStore('exam', {
   state: () => createInitialState(),
 
   getters: {
-    /**
-     * 当前阶段剩余秒数。
-     * 基于 stageStartedAt + stageDuration 与当前时间差值实时计算，最小为 0。
-     * 不使用 setInterval 维护递减值。
-     */
     remainingSeconds(state) {
       if (!state.stageStartedAt || state.stageDuration <= 0) return 0
 
       const elapsedSeconds = Math.floor((Date.now() - state.stageStartedAt) / 1000)
-      const remaining = state.stageDuration - elapsedSeconds
-      return Math.max(0, remaining)
+      return Math.max(0, state.stageDuration - elapsedSeconds)
     },
 
-    /** 当前阶段题目列表，若无当前阶段则返回空数组。 */
     currentQuestions(state) {
       if (!state.currentStage) return []
       return state.questionsByStage[state.currentStage] || []
     },
 
-    /** 当前阶段作答对象，若无当前阶段则返回空对象。 */
     currentAnswers(state) {
       if (!state.currentStage) return {}
       return state.answersByStage[state.currentStage] || {}
     },
 
-    /** 是否存在进行中的考试会话。 */
     hasActiveExam(state) {
       return state.examId !== null && !state.isSubmitted
     },
 
-    /** 阶段顺序常量。 */
     stageOrder() {
       return STAGE_ORDER
     },
   },
 
   actions: {
-    /**
-     * 开始考试。
-     * @param {string|number} paperId 试卷 ID
-     * @returns {Promise<void>}
-     */
     async startExam(paperId) {
       this.isLoading = true
       try {
-        const response = await request.post('/exam/start', { paperId })
+        const response = await examService.startExam(paperId)
         const { questionsByStage = {}, startedAt, paperId: returnedPaperId } = response.data || {}
 
         this.examId = returnedPaperId || paperId
-        this.questionsByStage = {
-          writing: (questionsByStage.writing || []).map((q) => transformQuestion(q, 'writing')),
-          listening: propagateListeningSessions(
-            (questionsByStage.listening || []).map((q) => transformQuestion(q, 'listening')),
-          ),
-          reading: propagateReadingPassages(
-            (questionsByStage.reading || []).map((q) => transformQuestion(q, 'reading')),
-          ),
-          translation: (questionsByStage.translation || []).map((q) => transformQuestion(q, 'translation')),
-        }
+        this.questionsByStage = normalizeQuestionsByStage(questionsByStage)
         this.stageStartedAt = startedAt ? new Date(startedAt).getTime() : Date.now()
         this.currentStage = 'writing'
         this.stageDuration = STAGE_DURATIONS.writing
@@ -242,33 +91,22 @@ export const useExamStore = defineStore('exam', {
       }
     },
 
-    /**
-     * 恢复考试会话。
-     * @param {string|number} examId 考试会话 ID
-     * @returns {Promise<void>}
-     */
     async resumeExam(examId) {
       this.isLoading = true
       try {
-        // TODO: 任务 1.3 接入 GET /api/exam/session/{examId}
         this.examId = examId
       } finally {
         this.isLoading = false
       }
     },
 
-    /**
-     * 保存作答草稿到本地状态。
-     * @param {'writing'|'listening'|'reading'|'translation'} stage 阶段
-     * @param {string|number} questionId 题目 ID
-     * @param {any} value 作答内容
-     */
     saveAnswer(stage, questionId, value) {
       if (!this.answersByStage[stage]) return
+
       this.answersByStage[stage][questionId] = value
 
-      request
-        .put('/exam/draft', {
+      examService
+        .saveDraft({
           paperId: this.examId,
           stage,
           questionId,
@@ -277,25 +115,15 @@ export const useExamStore = defineStore('exam', {
         .catch(() => {})
     },
 
-    /**
-     * 标记听力题已播放完成（一次性播放约束依赖该标记）。
-     * @param {string|number} questionId 题目 ID
-     */
     markListeningPlayed(questionId) {
       this.listeningPlayed[questionId] = true
     },
 
-    /**
-     * 切换到下一考试阶段并重置阶段计时。
-     * 若当前已经是最后阶段，则不执行任何操作。
-     */
     advanceStage() {
       const currentIndex = STAGE_ORDER.indexOf(this.currentStage)
       const nextIndex = currentIndex + 1
 
-      if (currentIndex === -1 || nextIndex >= STAGE_ORDER.length) {
-        return
-      }
+      if (currentIndex === -1 || nextIndex >= STAGE_ORDER.length) return
 
       const nextStage = STAGE_ORDER[nextIndex]
       this.currentStage = nextStage
@@ -303,19 +131,16 @@ export const useExamStore = defineStore('exam', {
       this.stageDuration = STAGE_DURATIONS[nextStage]
     },
 
-    /**
-     * 提交试卷（占位实现）。
-     * @returns {Promise<void>}
-     */
     async submitExam() {
-      // 防御性检查：已提交或正在提交中，直接返回，避免重复请求
-      if (this.isSubmitted || this.isLoading) {
-        return
-      }
+      if (this.isSubmitted || this.isLoading) return
+
       this.isLoading = true
       try {
-        const answers = Object.values(this.answersByStage).reduce((acc, stageAnswers) => ({ ...acc, ...stageAnswers }), {})
-        const response = await request.post('/exam/submit', {
+        const answers = Object.values(this.answersByStage).reduce(
+          (acc, stageAnswers) => ({ ...acc, ...stageAnswers }),
+          {},
+        )
+        const response = await examService.submitExam({
           paperId: this.examId,
           answers,
         })
@@ -327,9 +152,6 @@ export const useExamStore = defineStore('exam', {
       }
     },
 
-    /**
-     * 重置考试状态到初始值。
-     */
     resetExam() {
       this.$patch(createInitialState())
     },
@@ -341,110 +163,3 @@ export const useExamStore = defineStore('exam', {
     pick: ['examId'],
   },
 })
-
-export { STAGE_DURATIONS }
-
-/**
- * 根据听力题 questionNo 判断所属 Section。
- */
-export function getListeningSectionInfo(questionNo) {
-  if (questionNo <= 7) return { sectionLabel: 'Section A', sectionTitle: 'News Report' }
-  if (questionNo <= 15) return { sectionLabel: 'Section B', sectionTitle: 'Conversation' }
-  return { sectionLabel: 'Section C', sectionTitle: 'Passage' }
-}
-
-/**
- * 将题目列表按 sessionId 分组，生成 sessionGroups。
- * 每组包含 sessionId、sessionTitle、sharedStem、questions。
- */
-export function buildSessionGroups(questions, stage) {
-  const map = new Map()
-
-  for (const q of questions) {
-    const key = q.sessionId || String(q.id)
-    if (!map.has(key)) {
-      map.set(key, {
-        sessionId: key,
-        sessionTitle: '',
-        sharedStem: q.sharedStem || '',
-        section: stage,
-        sectionLabel: '',
-        sectionTitle: '',
-        questions: [],
-      })
-    }
-    map.get(key).questions.push(q)
-  }
-
-  const sessions = Array.from(map.values())
-
-  if (stage === 'listening') {
-    let newsCount = 0
-    let convCount = 0
-    let passageCount = 0
-    for (const session of sessions) {
-      const firstQ = session.questions[0]
-      const qNo = firstQ.questionNo
-      const sectionInfo = getListeningSectionInfo(qNo)
-      session.sectionLabel = sectionInfo.sectionLabel
-      session.sectionTitle = sectionInfo.sectionTitle
-
-      if (qNo <= 7) {
-        newsCount++
-        session.sessionTitle = `News Report ${newsCount}`
-      } else if (qNo <= 15) {
-        convCount++
-        session.sessionTitle = `Conversation ${convCount}`
-      } else {
-        passageCount++
-        session.sessionTitle = `Passage ${passageCount}`
-      }
-    }
-  }
-
-  if (stage === 'reading') {
-    let blankCount = 0
-    let matchingCount = 0
-    let choiceCount = 0
-    for (const session of sessions) {
-      const type = session.questions[0]?.content?.type
-      if (type === 'blank_filling') {
-        blankCount++
-        session.sessionTitle = `选词填空 ${blankCount}`
-        session.sectionLabel = 'Section A'
-        session.sectionTitle = '选词填空'
-      } else if (type === 'matching') {
-        matchingCount++
-        session.sessionTitle = `段落匹配 ${matchingCount}`
-        session.sectionLabel = 'Section B'
-        session.sectionTitle = '段落匹配'
-      } else {
-        choiceCount++
-        session.sessionTitle = `仔细阅读 ${choiceCount}`
-        session.sectionLabel = 'Section C'
-        session.sectionTitle = '仔细阅读'
-      }
-    }
-  }
-
-  return sessions
-}
-
-/**
- * 将 sessionGroups 按 section 聚合，生成 sectionGroups。
- */
-export function buildSectionGroups(sessionGroups) {
-  const map = new Map()
-  for (const session of sessionGroups) {
-    const key = session.sectionLabel || 'default'
-    if (!map.has(key)) {
-      map.set(key, {
-        sectionLabel: key,
-        sectionTitle: session.sectionTitle || '',
-        sessions: [],
-      })
-    }
-    map.get(key).sessions.push(session)
-  }
-  return Array.from(map.values())
-}
