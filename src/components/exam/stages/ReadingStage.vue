@@ -1,6 +1,9 @@
 <script setup>
 import { computed } from 'vue'
-import { useExamStore, buildSessionGroups, buildSectionGroups } from '@/stores/exam'
+import { useExamStore } from '@/stores/exam'
+import { buildSectionGroups, buildSessionGroups } from '@/utils/examGrouping'
+import ExamSessionCard from './ExamSessionCard.vue'
+import QuestionOptionList from './QuestionOptionList.vue'
 
 const props = defineProps({
   questions: {
@@ -43,17 +46,14 @@ function renderBlankArticle(article) {
       >
         <h2 class="section-title">{{ section.sectionLabel }} — {{ section.sectionTitle }}</h2>
 
-        <div
+        <ExamSessionCard
           v-for="session in section.sessions"
           :key="session.sessionId"
-          class="session-card"
+          :title="session.sessionTitle"
+          :meta="`${session.questions.length} questions`"
         >
-          <div class="session-header">
-            <div class="session-title">{{ session.sessionTitle }}</div>
-            <div class="session-meta">{{ session.questions.length }} questions</div>
-          </div>
-
           <!-- 文章区域：每个 session 只显示一次 -->
+          <template #before-questions>
           <div v-if="session.questions[0]?.content?.passage" class="passage-box">
             <!-- 选词填空：显示词库 + 带空位的文章 -->
             <template v-if="session.questions[0]?.content?.type === 'blank_filling'">
@@ -70,6 +70,7 @@ function renderBlankArticle(article) {
               <p class="passage-text">{{ session.questions[0].content.passage }}</p>
             </template>
           </div>
+          </template>
 
           <!-- 题目列表 -->
           <div class="question-list">
@@ -81,18 +82,12 @@ function renderBlankArticle(article) {
               <div class="question-no">Q{{ question.questionNo }}</div>
 
               <!-- 单选题 -->
-              <div v-if="question.content?.type === 'single_choice'" class="option-list">
-                <div
-                  v-for="(option, oi) in question.content?.options || []"
-                  :key="oi"
-                  class="option-item"
-                  :class="{ 'option-selected': examStore.answersByStage.reading[question.id] === String.fromCharCode(65 + oi) }"
-                  @click="updateAnswer(question.id, String.fromCharCode(65 + oi))"
-                >
-                  <span class="option-label">{{ String.fromCharCode(65 + oi) }}</span>
-                  <span class="option-text">{{ option }}</span>
-                </div>
-              </div>
+              <QuestionOptionList
+                v-if="question.content?.type === 'single_choice'"
+                :model-value="examStore.answersByStage.reading[question.id] || ''"
+                :options="question.content?.options || []"
+                @update:model-value="updateAnswer(question.id, $event)"
+              />
 
               <!-- 选词填空：输入框 -->
               <div v-else-if="question.content?.type === 'blank_filling'" class="blank-input-row">
@@ -117,7 +112,7 @@ function renderBlankArticle(article) {
               </div>
             </div>
           </div>
-        </div>
+        </ExamSessionCard>
       </section>
     </template>
   </section>
@@ -148,34 +143,6 @@ function renderBlankArticle(article) {
   line-height: 24px;
   font-weight: 700;
   color: var(--c-accent);
-}
-
-/* Session 卡片 */
-.session-card {
-  background: #FFFFFF;
-  border: 1px solid var(--c-border);
-  border-radius: var(--r-card);
-  padding: 24px 30px;
-}
-
-.session-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-
-.session-title {
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 700;
-  color: var(--c-text-primary);
-}
-
-.session-meta {
-  font-size: 13px;
-  line-height: 20px;
-  color: var(--c-text-secondary);
 }
 
 /* 文章区域 */
@@ -239,46 +206,6 @@ function renderBlankArticle(article) {
   line-height: 20px;
   font-weight: 700;
   color: var(--c-accent);
-}
-
-/* 选项 */
-.option-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.option-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--c-text-primary);
-  cursor: pointer;
-  padding: 8px 12px;
-  border-radius: var(--r-input);
-  transition: background-color 0.15s;
-}
-
-.option-item:hover {
-  background-color: var(--c-bg-hover);
-}
-
-.option-item.option-selected {
-  background-color: rgba(37, 99, 235, 0.06);
-  border: 1px solid var(--c-accent);
-}
-
-.option-label {
-  width: 24px;
-  flex: 0 0 24px;
-  font-weight: 700;
-  color: var(--c-text-primary);
-}
-
-.option-text {
-  flex: 1;
 }
 
 /* 填空 / 匹配 */

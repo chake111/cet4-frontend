@@ -1,9 +1,10 @@
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft } from '@element-plus/icons-vue'
-import { getExamRecords } from '@/api/exam'
+import { useBackTop } from '@/composables/useBackTop'
+import { examService } from '@/services/examService'
+import { formatDateTime, formatDurationText } from '@/utils/date'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
@@ -11,39 +12,18 @@ const userStore = useUserStore()
 
 const loading = ref(false)
 const records = ref([])
-const showBackTop = ref(false)
+const { showBackTop, scrollToTop } = useBackTop()
 
 const fetchRecords = async () => {
   loading.value = true
   try {
-    const data = await getExamRecords()
+    const data = await examService.getExamRecords()
     records.value = Array.isArray(data) ? data : []
   } catch (error) {
     ElMessage.error('获取考试记录失败，请稍后重试')
   } finally {
     loading.value = false
   }
-}
-
-const formatTime = (dt) => {
-  if (!dt) return '-'
-  const d = new Date(dt)
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
-const calcDuration = (start, end) => {
-  if (!start || !end) return '-'
-  const ms = new Date(end) - new Date(start)
-  if (ms < 0) return '-'
-  const totalMinutes = Math.floor(ms / 60000)
-  if (totalMinutes < 1) return '<1分钟'
-  const hours = Math.floor(totalMinutes / 60)
-  const minutes = totalMinutes % 60
-  if (hours > 0) {
-    return `${hours}小时${minutes}分钟`
-  }
-  return `${minutes}分钟`
 }
 
 const viewReport = (recordId) => {
@@ -55,21 +35,8 @@ const handleLogout = async () => {
   await router.push('/login')
 }
 
-const handleScroll = () => {
-  showBackTop.value = window.scrollY > 300
-}
-
-const scrollToTop = () => {
-  window.scrollTo({ top: 0, behavior: 'smooth' })
-}
-
 onMounted(() => {
   fetchRecords()
-  window.addEventListener('scroll', handleScroll)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('scroll', handleScroll)
 })
 </script>
 
@@ -96,7 +63,7 @@ onUnmounted(() => {
       <el-table-column label="试卷" min-width="240">
         <template #default="{ row }">
           <div class="record-title">{{ row.title }}</div>
-          <div class="record-time">{{ formatTime(row.submitTime) }}</div>
+          <div class="record-time">{{ formatDateTime(row.submitTime) }}</div>
         </template>
       </el-table-column>
       <el-table-column label="得分" width="140">
@@ -107,7 +74,7 @@ onUnmounted(() => {
       </el-table-column>
       <el-table-column label="用时" width="120">
         <template #default="{ row }">
-          {{ calcDuration(row.startTime, row.submitTime) }}
+          {{ formatDurationText(row.startTime, row.submitTime) }}
         </template>
       </el-table-column>
       <el-table-column label="操作" width="120" fixed="right">

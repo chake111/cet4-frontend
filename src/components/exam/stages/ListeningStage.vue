@@ -1,6 +1,9 @@
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
-import { useExamStore, buildSessionGroups, buildSectionGroups } from '@/stores/exam'
+import { useExamStore } from '@/stores/exam'
+import { buildSectionGroups, buildSessionGroups } from '@/utils/examGrouping'
+import ExamSessionCard from './ExamSessionCard.vue'
+import QuestionOptionList from './QuestionOptionList.vue'
 
 const props = defineProps({
   questions: {
@@ -112,18 +115,13 @@ const sectionGroups = computed(() => buildSectionGroups(sessionGroups.value))
       >
         <h2 class="section-title">{{ section.sectionLabel }} — {{ section.sectionTitle }}</h2>
 
-        <div
+        <ExamSessionCard
           v-for="session in section.sessions"
           :key="session.sessionId"
-          class="session-card"
+          :title="session.sessionTitle"
+          :meta="`${session.questions.length} questions`"
+          :stem="session.sharedStem"
         >
-          <div class="session-header">
-            <div class="session-title">{{ session.sessionTitle }}</div>
-            <div class="session-meta">{{ session.questions.length }} questions</div>
-          </div>
-
-          <p class="session-stem">{{ session.sharedStem }}</p>
-
           <div class="question-list">
             <div
               v-for="question in session.questions"
@@ -131,21 +129,15 @@ const sectionGroups = computed(() => buildSectionGroups(sessionGroups.value))
               class="question-block"
             >
               <div class="question-no">Q{{ question.questionNo }}</div>
-              <div class="option-list">
-                <div
-                  v-for="(option, oi) in question.content?.options?.slice(0, 4) || []"
-                  :key="oi"
-                  class="option-item"
-                  :class="{ 'option-selected': examStore.answersByStage.listening[question.id] === String.fromCharCode(65 + oi) }"
-                  @click="updateAnswer(question.id, String.fromCharCode(65 + oi))"
-                >
-                  <span class="option-label">{{ String.fromCharCode(65 + oi) }}</span>
-                  <span class="option-text">{{ option }}</span>
-                </div>
-              </div>
+              <QuestionOptionList
+                :model-value="examStore.answersByStage.listening[question.id] || ''"
+                :options="question.content?.options || []"
+                :max-options="4"
+                @update:model-value="updateAnswer(question.id, $event)"
+              />
             </div>
           </div>
-        </div>
+        </ExamSessionCard>
       </section>
     </template>
   </section>
@@ -240,45 +232,6 @@ const sectionGroups = computed(() => buildSectionGroups(sessionGroups.value))
   color: var(--c-accent);
 }
 
-/* Session 卡片 */
-.session-card {
-  background: #FFFFFF;
-  border: 1px solid var(--c-border);
-  border-radius: var(--r-card);
-  padding: 24px 30px;
-}
-
-.session-card + .session-card {
-  margin-top: 0;
-}
-
-.session-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-
-.session-title {
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 700;
-  color: var(--c-text-primary);
-}
-
-.session-meta {
-  font-size: 13px;
-  line-height: 20px;
-  color: var(--c-text-secondary);
-}
-
-.session-stem {
-  margin: 0 0 22px;
-  font-size: 14px;
-  line-height: 1.8;
-  color: var(--c-text-primary);
-}
-
 /* 题目列表 */
 .question-list {
   display: flex;
@@ -303,43 +256,4 @@ const sectionGroups = computed(() => buildSectionGroups(sessionGroups.value))
   color: var(--c-accent);
 }
 
-/* 选项 */
-.option-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.option-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--c-text-primary);
-  cursor: pointer;
-  padding: 8px 12px;
-  border-radius: var(--r-input);
-  transition: background-color 0.15s;
-}
-
-.option-item:hover {
-  background-color: var(--c-bg-hover);
-}
-
-.option-item.option-selected {
-  background-color: rgba(37, 99, 235, 0.06);
-  border: 1px solid var(--c-accent);
-}
-
-.option-label {
-  width: 24px;
-  flex: 0 0 24px;
-  font-weight: 700;
-  color: var(--c-text-primary);
-}
-
-.option-text {
-  flex: 1;
-}
 </style>

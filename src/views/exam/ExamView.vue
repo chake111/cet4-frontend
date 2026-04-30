@@ -7,13 +7,13 @@ import WritingStage from '@/components/exam/stages/WritingStage.vue'
 import ListeningStage from '@/components/exam/stages/ListeningStage.vue'
 import ReadingStage from '@/components/exam/stages/ReadingStage.vue'
 import TranslationStage from '@/components/exam/stages/TranslationStage.vue'
-import { useExamStore, STAGE_DURATIONS } from '@/stores/exam'
+import { useExamStore } from '@/stores/exam'
+import { STAGE_ORDER } from '@/constants/exam'
+import { useExamTimer } from '@/composables/useExamTimer'
 
 const route = useRoute()
 const router = useRouter()
 const examStore = useExamStore()
-
-const STAGE_ORDER = ['writing', 'listening', 'reading', 'translation']
 
 const stageComponentMap = {
   writing: WritingStage,
@@ -22,11 +22,10 @@ const stageComponentMap = {
   translation: TranslationStage,
 }
 
-const tick = ref(0)
 const isAutoSwitching = ref(false)
 const submitting = ref(false)
 const autoSubmitFailed = ref(false)
-let timer = null
+const { start: startTimer, stop: stopTimer } = useExamTimer(examStore, { autoStart: false })
 
 const currentStageComponent = computed(() => stageComponentMap[examStore.currentStage] || WritingStage)
 
@@ -38,7 +37,6 @@ const nextButtonText = computed(() => {
 })
 
 const currentQuestions = computed(() => {
-  tick.value
   const stage = examStore.currentStage
   if (!stage) return []
   return examStore.questionsByStage[stage] || []
@@ -101,18 +99,11 @@ const handleNext = async () => {
 
 onMounted(async () => {
   await examStore.startExam(route.params.id)
-
-  timer = setInterval(async () => {
-    tick.value += 1
-    await handleAutoSwitch()
-  }, 1000)
+  startTimer(handleAutoSwitch)
 })
 
 onUnmounted(() => {
-  if (timer) {
-    clearInterval(timer)
-    timer = null
-  }
+  stopTimer()
 
   // TODO: 任务 1.3 恢复离开页面时的答题草稿上报 API
 })
