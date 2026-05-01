@@ -80,8 +80,6 @@ const renderBlankArticle = (article) => {
   margin: 4px 6px 4px 0;
   padding: 2px 10px;
   border-radius: var(--r-button);
-  background: var(--c-bg-weak);
-  border: 1px solid var(--c-border);
   font-size: 13px;
   color: var(--c-text-primary);
   transition: background 0.15s;
