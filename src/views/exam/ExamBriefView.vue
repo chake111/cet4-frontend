@@ -40,8 +40,8 @@ const fetchExamInfo = async () => {
 
   loading.value = true
   try {
-    const data = await examService.getExamList()
-    const list = Array.isArray(data) ? data : []
+    const res = await examService.getExamList()
+    const list = Array.isArray(res.data) ? res.data : []
     examInfo.value = list.find((exam) => String(exam.id) === String(examId)) || null
   } catch (error) {
     ElMessage.error('获取试卷信息失败，稍后重试')
@@ -212,7 +212,7 @@ onMounted(fetchExamInfo)
   height: 24px;
   border-radius: 50%;
   background: var(--c-accent);
-  color: #FFFFFF;
+  color: #ffffff;
   font-size: 12px;
   font-weight: 600;
   display: flex;

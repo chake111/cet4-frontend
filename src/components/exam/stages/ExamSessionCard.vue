@@ -31,7 +31,7 @@ defineProps({
 
 <style scoped>
 .session-card {
-  background: #FFFFFF;
+  background: #ffffff;
   border: 1px solid var(--c-border);
   border-radius: var(--r-card);
   padding: 24px 30px;

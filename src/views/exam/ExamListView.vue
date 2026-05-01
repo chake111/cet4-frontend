@@ -15,8 +15,8 @@ const examList = ref([])
 const fetchExamList = async () => {
   loading.value = true
   try {
-    const data = await examService.getExamList()
-    examList.value = Array.isArray(data) ? data : []
+    const res = await examService.getExamList()
+    examList.value = Array.isArray(res.data) ? res.data : []
   } catch (error) {
     ElMessage.error('获取试卷列表失败，稍后重试')
   } finally {
@@ -63,24 +63,15 @@ onMounted(fetchExamList)
     <div class="main-area">
       <el-skeleton v-if="loading" :rows="6" animated />
 
-      <el-empty
-        v-else-if="!examList.length"
-        description="暂无试卷"
-      />
+      <el-empty v-else-if="!examList.length" description="暂无试卷" />
 
       <div v-else class="exam-list">
-        <div
-          v-for="exam in examList"
-          :key="exam.id"
-          class="exam-item"
-        >
+        <div v-for="exam in examList" :key="exam.id" class="exam-item">
           <div class="exam-item-left">
             <div class="exam-item-title">{{ formatExamTitle(exam) }}</div>
             <div class="exam-item-subtitle">{{ formatExamSubtitle(exam) }}</div>
           </div>
-          <el-button type="primary" @click="handleStartExam(exam.id)">
-            开始考试
-          </el-button>
+          <el-button type="primary" @click="handleStartExam(exam.id)"> 开始考试 </el-button>
         </div>
       </div>
     </div>

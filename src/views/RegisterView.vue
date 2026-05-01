@@ -117,9 +117,7 @@ const handleRegister = async () => {
       </el-button>
     </el-form>
 
-    <div class="footer-link">
-      已有账号？<router-link to="/login">登录</router-link>
-    </div>
+    <div class="footer-link">已有账号？<router-link to="/login">登录</router-link></div>
   </AuthLayout>
 </template>
 
@@ -153,5 +151,4 @@ const handleRegister = async () => {
 .footer-link a:hover {
   text-decoration: underline;
 }
-
 </style>

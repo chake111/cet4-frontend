@@ -1,7 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
-import { useExamStore } from '@/stores/exam'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -10,11 +8,13 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: () => import('@/views/LoginView.vue'),
+      meta: { redirectIfAuth: true },
     },
     {
       path: '/register',
       name: 'register',
       component: () => import('@/views/RegisterView.vue'),
+      meta: { requiresAuth: false, redirectIfAuth: true },
     },
     {
       path: '/',
@@ -56,32 +56,23 @@ const router = createRouter({
       component: () => import('@/views/exam/ExamResultView.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      redirect: '/exam',
+    },
   ],
 })
 
-router.beforeEach(async (to) => {
+router.beforeEach((to) => {
   const userStore = useUserStore()
-  const examStore = useExamStore()
 
   if (to.meta.requiresAuth && !userStore.token) {
     return '/login'
   }
 
-  if (to.path === '/login' && userStore.token) {
+  if (to.meta.redirectIfAuth && userStore.token) {
     return '/exam'
-  }
-
-  if (examStore.hasActiveExam && !to.path.startsWith('/exam')) {
-    try {
-      await ElMessageBox.confirm(
-        '考试进行中，确定要离开吗？离开将丢失当前进度',
-        '提示',
-        { type: 'warning' },
-      )
-      return true
-    } catch {
-      return false
-    }
   }
 
   return true

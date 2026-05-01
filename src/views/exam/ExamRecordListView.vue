@@ -17,8 +17,8 @@ const { showBackTop, scrollToTop } = useBackTop()
 const fetchRecords = async () => {
   loading.value = true
   try {
-    const data = await examService.getExamRecords()
-    records.value = Array.isArray(data) ? data : []
+    const res = await examService.getExamRecords()
+    records.value = Array.isArray(res.data) ? res.data : []
   } catch (error) {
     ElMessage.error('获取考试记录失败，请稍后重试')
   } finally {
@@ -41,10 +41,12 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="exam-record-list" v-loading="loading">
+  <div v-loading="loading" class="exam-record-list">
     <header class="page-header">
       <div class="header-left">
-        <span class="back-link" @click="$router.push('/exam')">← 返回</span>
+        <span class="back-link" @click="$router.push('/exam')"
+          ><el-icon><ArrowLeft /></el-icon> 返回</span
+        >
         <div class="header-titles">
           <h1 class="page-title">考试记录</h1>
           <p class="page-subtitle">查看已完成的 CET-4 模拟考试</p>
@@ -53,13 +55,13 @@ onMounted(() => {
       <span class="logout-link" @click="handleLogout">退出登录</span>
     </header>
 
-    <el-empty v-if="!loading && records.length === 0" description="暂无考试记录" class="empty-state" />
+    <el-empty
+      v-if="!loading && records.length === 0"
+      description="暂无考试记录"
+      class="empty-state"
+    />
 
-    <el-table
-      v-else
-      :data="records"
-      class="record-table"
-    >
+    <el-table v-else :data="records" class="record-table">
       <el-table-column label="试卷" min-width="240">
         <template #default="{ row }">
           <div class="record-title">{{ row.title }}</div>
@@ -86,8 +88,16 @@ onMounted(() => {
 
     <!-- 返回顶部 -->
     <transition name="back-top-fade">
-      <button v-if="showBackTop" class="modern-back-top" @click="scrollToTop" aria-label="回到顶部">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <button v-if="showBackTop" class="modern-back-top" aria-label="回到顶部" @click="scrollToTop">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
           <polyline points="18 15 12 9 6 15" />
         </svg>
       </button>
@@ -117,7 +127,7 @@ onMounted(() => {
 }
 
 .back-link {
-  color: #6B7280;
+  color: #6b7280;
   font-size: 14px;
   cursor: pointer;
   line-height: 28px;
@@ -145,12 +155,12 @@ onMounted(() => {
 .page-subtitle {
   margin: 4px 0 0;
   font-size: 14px;
-  color: #6B7280;
+  color: #6b7280;
   line-height: 1.4;
 }
 
 .logout-link {
-  color: #6B7280;
+  color: #6b7280;
   font-size: 14px;
   cursor: pointer;
   line-height: 28px;
@@ -165,8 +175,8 @@ onMounted(() => {
 /* ---- Table ---- */
 .record-table {
   --el-table-border-color: transparent;
-  --el-table-header-bg-color: #F9FAFB;
-  --el-table-row-hover-bg-color: #F9FAFB;
+  --el-table-header-bg-color: #f9fafb;
+  --el-table-row-hover-bg-color: #f9fafb;
 }
 
 .record-table :deep(.el-table__inner-wrapper::before) {
@@ -175,14 +185,14 @@ onMounted(() => {
 
 .record-table :deep(.el-table__header th) {
   font-size: 12px;
-  color: #6B7280;
+  color: #6b7280;
   font-weight: 400;
-  background-color: #F9FAFB;
-  border-bottom: 1px solid #E5E7EB;
+  background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .record-table :deep(.el-table__body td) {
-  border-bottom: 1px solid #E5E7EB;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .record-table :deep(.el-table__row) {
@@ -202,7 +212,7 @@ onMounted(() => {
 }
 
 .record-time {
-  color: #6B7280;
+  color: #6b7280;
   font-size: 12px;
   margin-top: 2px;
   line-height: 1.4;
@@ -217,7 +227,7 @@ onMounted(() => {
 
 .score-full {
   font-size: 12px;
-  color: #6B7280;
+  color: #6b7280;
   margin-left: 2px;
 }
 
@@ -226,8 +236,8 @@ onMounted(() => {
   display: inline-block;
   padding: 4px 12px;
   font-size: 13px;
-  color: #0F172A;
-  border: 1px solid #D1D5DB;
+  color: #0f172a;
+  border: 1px solid #d1d5db;
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.15s;
@@ -236,8 +246,8 @@ onMounted(() => {
 }
 
 .report-btn:hover {
-  color: #2563EB;
-  border-color: #2563EB;
+  color: #2563eb;
+  border-color: #2563eb;
 }
 
 /* ---- Empty state ---- */

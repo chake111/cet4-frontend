@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { isStructuredFeedback, parseAiFeedback } from '@/utils/feedback'
+import { isStructuredFeedback, parseAiFeedback } from '@/domain/exam'
 
 const props = defineProps({
   feedback: {

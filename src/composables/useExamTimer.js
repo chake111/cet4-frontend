@@ -1,16 +1,23 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { TIMER_DANGER_SECONDS, TIMER_TICK_MS } from '@/constants/exam'
 
-export function useExamTimer(examStore, options = {}) {
+/**
+ * 考试计时 composable。
+ * 从 examSessionStore 读取阶段计时信息。
+ *
+ * @param {import('pinia').Store} examSessionStore - examSession store 实例
+ * @param {object} options - 配置项
+ */
+export function useExamTimer(examSessionStore, options = {}) {
   const tick = ref(0)
   let intervalId = null
 
   const remainingSeconds = computed(() => {
     tick.value
-    if (!examStore.stageStartedAt || !examStore.stageDuration) return 0
+    if (!examSessionStore.stageStartedAt || !examSessionStore.stageDuration) return 0
 
-    const elapsed = Math.floor((Date.now() - examStore.stageStartedAt) / 1000)
-    return Math.max(0, examStore.stageDuration - elapsed)
+    const elapsed = Math.floor((Date.now() - examSessionStore.stageStartedAt) / 1000)
+    return Math.max(0, examSessionStore.stageDuration - elapsed)
   })
 
   const timeText = computed(() => {

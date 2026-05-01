@@ -1,5 +1,5 @@
 <script setup>
-import { useExamStore } from '@/stores/exam'
+import { useExamAnswerStore } from '@/stores/examAnswer'
 import TextAnswerQuestion from './TextAnswerQuestion.vue'
 
 defineProps({
@@ -9,10 +9,10 @@ defineProps({
   },
 })
 
-const examStore = useExamStore()
+const answerStore = useExamAnswerStore()
 
 const updateAnswer = (questionId, value) => {
-  examStore.saveAnswer('translation', questionId, value)
+  answerStore.saveAnswer({ stage: 'translation', questionId, value })
 }
 </script>
 
@@ -23,7 +23,7 @@ const updateAnswer = (questionId, value) => {
       :key="question.id"
       :question-no="index + 1"
       :description="question.content?.source"
-      :model-value="examStore.answersByStage.translation[question.id] || ''"
+      :model-value="answerStore.answersByStage.translation[question.id] || ''"
       :rows="8"
       placeholder="输入英文译文"
       @update:model-value="updateAnswer(question.id, $event)"
@@ -37,5 +37,4 @@ const updateAnswer = (questionId, value) => {
   flex-direction: column;
   gap: 24px;
 }
-
 </style>

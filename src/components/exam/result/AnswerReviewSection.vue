@@ -1,6 +1,5 @@
 <script setup>
-import { normalizeAnswer, UNANSWERED_TEXT } from '@/utils/answer'
-import { getScoreText } from '@/utils/examResult'
+import { normalizeAnswer, UNANSWERED_TEXT, getScoreText } from '@/domain/exam'
 import AiFeedbackPanel from './AiFeedbackPanel.vue'
 
 defineProps({
@@ -62,7 +61,11 @@ defineProps({
       </div>
 
       <div v-if="group.subjectiveQuestions.length > 0" class="subjective-list">
-        <div v-for="question in group.subjectiveQuestions" :key="question.questionId" class="question-item">
+        <div
+          v-for="question in group.subjectiveQuestions"
+          :key="question.questionId"
+          class="question-item"
+        >
           <div class="question-header">
             <span class="question-no">Q{{ question.questionNo }}</span>
           </div>
@@ -152,16 +155,16 @@ defineProps({
 }
 
 .session-question-row.row-wrong {
-  background: #FEF2F2;
+  background: #fef2f2;
 }
 
 .session-question-row.row-unanswered {
-  background: #F9FAFB;
+  background: #f9fafb;
 }
 
 .sq-col-no {
   font-weight: 600;
-  color: #6B7280;
+  color: #6b7280;
 }
 
 .sq-col-my,
@@ -177,7 +180,7 @@ defineProps({
 .sq-col-score {
   font-family: var(--font-mono);
   font-size: 12px;
-  color: #6B7280;
+  color: #6b7280;
 }
 
 .sq-col-status {
@@ -195,18 +198,18 @@ defineProps({
 }
 
 .tag-correct {
-  background: #F0FDF4;
-  color: #16A34A;
+  background: #f0fdf4;
+  color: #16a34a;
 }
 
 .tag-wrong {
-  background: #FEF2F2;
-  color: #DC2626;
+  background: #fef2f2;
+  color: #dc2626;
 }
 
 .tag-unanswered {
-  background: #F3F4F6;
-  color: #6B7280;
+  background: #f3f4f6;
+  color: #6b7280;
 }
 
 .subjective-list {
@@ -233,7 +236,7 @@ defineProps({
 
 .question-no {
   font-weight: 600;
-  color: #6B7280;
+  color: #6b7280;
 }
 
 .question-row {

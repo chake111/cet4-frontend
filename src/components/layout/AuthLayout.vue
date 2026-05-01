@@ -26,13 +26,13 @@ import { EXAM_TITLE } from '@/constants/exam'
   height: 56px;
   padding: 0 24px;
   background: var(--c-primary);
-  color: #FFFFFF;
+  color: #ffffff;
 }
 
 .brand {
   font-size: 15px;
   font-weight: 600;
-  color: #FFFFFF;
+  color: #ffffff;
 }
 
 .main-area {

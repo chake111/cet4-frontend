@@ -26,13 +26,13 @@ defineProps({
   height: 56px;
   padding: 0 24px;
   background: var(--c-primary);
-  color: #FFFFFF;
+  color: #ffffff;
 }
 
 .brand {
   font-size: 16px;
   font-weight: 600;
-  color: #FFFFFF;
+  color: #ffffff;
 }
 
 .top-bar-actions {
@@ -50,7 +50,7 @@ defineProps({
 
 :deep(.top-bar-link:hover) {
   text-decoration: underline;
-  color: #FFFFFF;
+  color: #ffffff;
 }
 
 :deep(.top-bar-divider) {

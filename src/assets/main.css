@@ -3,25 +3,25 @@
 /* ---------- CSS 变量 ---------- */
 :root {
   /* 品牌色 */
-  --c-primary: #0F172A;
-  --c-accent: #2563EB;
-  --c-danger: #DC2626;
-  --c-success: #16A34A;
-  --c-warning: #D97706;
+  --c-primary: #0f172a;
+  --c-accent: #2563eb;
+  --c-danger: #dc2626;
+  --c-success: #16a34a;
+  --c-warning: #d97706;
 
   /* 文字 */
   --c-text-primary: #111827;
-  --c-text-secondary: #6B7280;
-  --c-text-tertiary: #9CA3AF;
+  --c-text-secondary: #6b7280;
+  --c-text-tertiary: #9ca3af;
 
   /* 边框 & 分割线 */
-  --c-border: #E5E7EB;
-  --c-divider: #E5E7EB;
+  --c-border: #e5e7eb;
+  --c-divider: #e5e7eb;
 
   /* 背景 */
-  --c-bg: #FFFFFF;
-  --c-bg-weak: #F9FAFB;
-  --c-bg-hover: #F3F4F6;
+  --c-bg: #ffffff;
+  --c-bg-weak: #f9fafb;
+  --c-bg-hover: #f3f4f6;
 
   /* 圆角 */
   --r-card: 6px;
@@ -30,8 +30,8 @@
   --r-tag: 2px;
 
   /* 字体 */
-  --font-family: "PingFang SC", "Inter", "Microsoft YaHei", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", "Consolas", monospace;
+  --font-family: 'PingFang SC', 'Inter', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
 
   /* 间距 */
   --spacing-xs: 4px;
@@ -77,64 +77,64 @@ a:hover {
 
 /* 主色覆盖：#409EFF → #2563EB */
 :root {
-  --el-color-primary: #2563EB;
-  --el-color-primary-light-3: #5B8DEF;
-  --el-color-primary-light-5: #92B5F5;
-  --el-color-primary-light-7: #C1D8FA;
-  --el-color-primary-light-8: #D6E4FC;
-  --el-color-primary-light-9: #EBF1FE;
-  --el-color-primary-dark-2: #1E50C5;
+  --el-color-primary: #2563eb;
+  --el-color-primary-light-3: #5b8def;
+  --el-color-primary-light-5: #92b5f5;
+  --el-color-primary-light-7: #c1d8fa;
+  --el-color-primary-light-8: #d6e4fc;
+  --el-color-primary-light-9: #ebf1fe;
+  --el-color-primary-dark-2: #1e50c5;
 
   /* 成功色覆盖 */
-  --el-color-success: #16A34A;
-  --el-color-success-light-3: #4DB86E;
-  --el-color-success-light-5: #85CE96;
-  --el-color-success-light-7: #B8E2C3;
-  --el-color-success-light-8: #D0EDD8;
-  --el-color-success-light-9: #E8F6EC;
-  --el-color-success-dark-2: #11823B;
+  --el-color-success: #16a34a;
+  --el-color-success-light-3: #4db86e;
+  --el-color-success-light-5: #85ce96;
+  --el-color-success-light-7: #b8e2c3;
+  --el-color-success-light-8: #d0edd8;
+  --el-color-success-light-9: #e8f6ec;
+  --el-color-success-dark-2: #11823b;
 
   /* 危险色覆盖 */
-  --el-color-danger: #DC2626;
-  --el-color-danger-light-3: #E55B5B;
-  --el-color-danger-light-5: #EE9494;
-  --el-color-danger-light-7: #F4C0C0;
-  --el-color-danger-light-8: #F8D5D5;
-  --el-color-danger-light-9: #FBEAEA;
-  --el-color-danger-dark-2: #B01E1E;
+  --el-color-danger: #dc2626;
+  --el-color-danger-light-3: #e55b5b;
+  --el-color-danger-light-5: #ee9494;
+  --el-color-danger-light-7: #f4c0c0;
+  --el-color-danger-light-8: #f8d5d5;
+  --el-color-danger-light-9: #fbeaea;
+  --el-color-danger-dark-2: #b01e1e;
 
   /* 警告色覆盖 */
-  --el-color-warning: #D97706;
-  --el-color-warning-light-3: #E39A3E;
-  --el-color-warning-light-5: #ECBD76;
-  --el-color-warning-light-7: #F2D8AE;
-  --el-color-warning-light-8: #F6E4C8;
-  --el-color-warning-light-9: #FAF0E2;
-  --el-color-warning-dark-2: #AE5F05;
+  --el-color-warning: #d97706;
+  --el-color-warning-light-3: #e39a3e;
+  --el-color-warning-light-5: #ecbd76;
+  --el-color-warning-light-7: #f2d8ae;
+  --el-color-warning-light-8: #f6e4c8;
+  --el-color-warning-light-9: #faf0e2;
+  --el-color-warning-dark-2: #ae5f05;
 
   /* 文字色覆盖 */
   --el-text-color-primary: #111827;
   --el-text-color-regular: #374151;
-  --el-text-color-secondary: #6B7280;
-  --el-text-color-placeholder: #9CA3AF;
+  --el-text-color-secondary: #6b7280;
+  --el-text-color-placeholder: #9ca3af;
 
   /* 边框色覆盖 */
-  --el-border-color: #E5E7EB;
-  --el-border-color-light: #F3F4F6;
-  --el-border-color-lighter: #F9FAFB;
-  --el-border-color-extra-light: #FAFAFA;
+  --el-border-color: #e5e7eb;
+  --el-border-color-light: #f3f4f6;
+  --el-border-color-lighter: #f9fafb;
+  --el-border-color-extra-light: #fafafa;
 
   /* 填充色覆盖 */
-  --el-fill-color: #F3F4F6;
-  --el-fill-color-light: #F9FAFB;
-  --el-fill-color-lighter: #FAFAFA;
-  --el-fill-color-extra-light: #FFFFFF;
-  --el-fill-color-blank: #FFFFFF;
+  --el-fill-color: #f3f4f6;
+  --el-fill-color-light: #f9fafb;
+  --el-fill-color-lighter: #fafafa;
+  --el-fill-color-extra-light: #ffffff;
+  --el-fill-color-blank: #ffffff;
 
   /* 背景色覆盖 */
-  --el-bg-color: #FFFFFF;
-  --el-bg-color-page: #F9FAFB;
-  --el-bg-color-overlay: #FFFFFF;
+  --el-bg-color: #ffffff;
+  --el-bg-color-page: #f9fafb;
+  --el-bg-color-overlay: #ffffff;
 
   /* 圆角覆盖 */
   --el-border-radius-base: 4px;
@@ -156,12 +156,12 @@ a:hover {
 }
 
 .el-button--primary {
-  --el-button-bg-color: #2563EB;
-  --el-button-border-color: #2563EB;
-  --el-button-hover-bg-color: #3B7DF0;
-  --el-button-hover-border-color: #3B7DF0;
-  --el-button-active-bg-color: #1E50C5;
-  --el-button-active-border-color: #1E50C5;
+  --el-button-bg-color: #2563eb;
+  --el-button-border-color: #2563eb;
+  --el-button-hover-bg-color: #3b7df0;
+  --el-button-hover-border-color: #3b7df0;
+  --el-button-active-bg-color: #1e50c5;
+  --el-button-active-border-color: #1e50c5;
 }
 
 /* 输入框圆角 */
@@ -195,13 +195,25 @@ a:hover {
 }
 
 /* ---------- 工具类 ---------- */
-.text-primary { color: var(--c-text-primary); }
-.text-secondary { color: var(--c-text-secondary); }
-.text-accent { color: var(--c-accent); }
-.text-danger { color: var(--c-danger); }
-.text-success { color: var(--c-success); }
+.text-primary {
+  color: var(--c-text-primary);
+}
+.text-secondary {
+  color: var(--c-text-secondary);
+}
+.text-accent {
+  color: var(--c-accent);
+}
+.text-danger {
+  color: var(--c-danger);
+}
+.text-success {
+  color: var(--c-success);
+}
 
-.font-mono { font-family: var(--font-mono); }
+.font-mono {
+  font-family: var(--font-mono);
+}
 
 /* ---------- 回到顶部按钮 ---------- */
 .modern-back-top {
@@ -230,7 +242,7 @@ a:hover {
 .modern-back-top svg {
   width: 20px;
   height: 20px;
-  color: #FFFFFF;
+  color: #ffffff;
 }
 
 /* 回到顶部按钮过渡动画 */
@@ -273,10 +285,50 @@ a:hover {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #D1D5DB;
+  background: #d1d5db;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #9CA3AF;
+  background: #9ca3af;
+}
+
+/* ---------- 考试页面全局覆盖 ---------- */
+.exam-view .question-card {
+  background: var(--c-bg);
+  border-radius: var(--r-card);
+  padding: 20px;
+  border: 1px solid var(--c-border);
+}
+
+.exam-view .el-button--primary {
+  background-color: var(--c-accent);
+  border-color: var(--c-accent);
+}
+
+.exam-view .el-button--primary:hover {
+  background-color: var(--c-accent);
+  border-color: var(--c-accent);
+  opacity: 0.9;
+}
+
+/* ---------- 结果页全局布局 ---------- */
+.result-page {
+  min-height: 100vh;
+  background: var(--c-bg-weak);
+}
+.result-main {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 32px 20px;
+}
+@media (max-width: 768px) {
+  .result-main {
+    padding: 20px 16px;
+  }
+}
+@media (max-width: 480px) {
+  .result-main {
+    padding: 16px 12px;
+  }
 }

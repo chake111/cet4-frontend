@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
+import 'element-plus/theme-chalk/el-message.css'
 import './assets/main.css'
 
 import App from './App.vue'

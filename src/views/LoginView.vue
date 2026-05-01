@@ -36,9 +36,9 @@ const handleLogin = async () => {
       return
     }
 
-    ElMessage.error(res.message || '登录失败')
+    ElMessage.error(res.message || '用户名或密码错误')
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || '登录失败，稍后重试')
+    ElMessage.error(error.response?.data?.message || '用户名或密码错误')
   } finally {
     loading.value = false
   }
@@ -63,14 +63,18 @@ const handleLogin = async () => {
           @keyup.enter="handleLogin"
         />
       </el-form-item>
-      <el-button type="primary" :loading="loading" size="large" class="submit-btn" @click="handleLogin">
+      <el-button
+        type="primary"
+        :loading="loading"
+        size="large"
+        class="submit-btn"
+        @click="handleLogin"
+      >
         登录
       </el-button>
     </el-form>
 
-    <div class="footer-link">
-      没有账号？<router-link to="/register">注册</router-link>
-    </div>
+    <div class="footer-link">没有账号？<router-link to="/register">注册</router-link></div>
   </AuthLayout>
 </template>
 
@@ -104,5 +108,4 @@ const handleLogin = async () => {
 .footer-link a:hover {
   text-decoration: underline;
 }
-
 </style>

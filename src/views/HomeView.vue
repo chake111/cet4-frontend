@@ -25,7 +25,12 @@ const listeningQuestions = [
     id: 'l-mock-1',
     content: {
       stem: 'What does the speaker suggest students do first?',
-      options: ['A. Join a club', 'B. Review the syllabus', 'C. Buy new books', 'D. Ask senior students'],
+      options: [
+        'A. Join a club',
+        'B. Review the syllabus',
+        'C. Buy new books',
+        'D. Ask senior students',
+      ],
     },
   },
 ]

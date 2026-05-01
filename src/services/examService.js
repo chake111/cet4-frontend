@@ -2,11 +2,11 @@ import request from '@/utils/request'
 
 export const examService = {
   getExamList() {
-    return request.get('/exam').then((res) => res.data)
+    return request.get('/exam')
   },
 
   getExamRecords() {
-    return request.get('/exam/records').then((res) => res.data)
+    return request.get('/exam/records')
   },
 
   startExam(paperId) {
