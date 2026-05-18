@@ -108,6 +108,20 @@ describe('useExamFlow', () => {
       expect(mockPush).toHaveBeenCalledWith('/exam/record/rec-123/result')
     })
 
+    it('should navigate when submit response is already unwrapped', async () => {
+      const sessionStore = useExamSessionStore()
+      sessionStore.$patch({ examId: 'paper-123', isSubmitted: false, isLoading: false })
+
+      examService.submitExam.mockResolvedValue({
+        recordId: 'rec-direct',
+      })
+
+      const { submitExamAndExit } = useExamFlow()
+      await submitExamAndExit()
+
+      expect(mockPush).toHaveBeenCalledWith('/exam/record/rec-direct/result')
+    })
+
     it('should show error message on submit failure', async () => {
       const sessionStore = useExamSessionStore()
       sessionStore.$patch({ examId: 'paper-123', isSubmitted: false, isLoading: false })

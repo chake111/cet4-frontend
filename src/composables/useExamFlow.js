@@ -57,7 +57,11 @@ export function useExamFlow() {
     try {
       const allAnswers = aggregateAllAnswers()
       const result = await sessionStore.submitExam(allAnswers)
-      const recordId = result?.data?.recordId
+      const submitResult = result?.data ?? result
+      const recordId = submitResult?.recordId
+      if (!recordId) {
+        throw new Error('Missing recordId in submit response')
+      }
       await router.push('/exam/record/' + recordId + '/result')
     } catch (error) {
       ElMessage.error('提交失败，请重试')

@@ -36,7 +36,7 @@ export function useExamResult(recordId) {
     loading.value = true
     try {
       const res = await examService.getExamResult(id)
-      result.value = res?.data || {}
+      result.value = res?.data ?? res ?? {}
     } catch {
       ElMessage.error('获取结果失败，请稍后重试')
       result.value = {}
