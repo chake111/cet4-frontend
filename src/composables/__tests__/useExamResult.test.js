@@ -15,6 +15,7 @@ vi.mock('@/services/examService', () => ({
 }))
 
 import { examService } from '@/services/examService'
+import { ElMessage } from 'element-plus'
 
 describe('useExamResult', () => {
   beforeEach(() => {
@@ -53,5 +54,26 @@ describe('useExamResult', () => {
 
     expect(result.value.score).toBe(360)
     expect(durationText.value).toBe('00:45:00')
+  })
+
+  it('should show user guidance when recordId is missing', async () => {
+    const { loading, fetchResult } = useExamResult(ref(''))
+
+    await fetchResult()
+
+    expect(loading.value).toBe(false)
+    expect(examService.getExamResult).not.toHaveBeenCalled()
+    expect(ElMessage.error).toHaveBeenCalledWith('无法打开考试报告，请从考试记录重新进入')
+  })
+
+  it('should leave rejected fetch messages to the request interceptor', async () => {
+    examService.getExamResult.mockRejectedValue(new Error('Server failed'))
+
+    const { result, loading, fetchResult } = useExamResult(ref('1'))
+    await fetchResult()
+
+    expect(result.value).toEqual({})
+    expect(loading.value).toBe(false)
+    expect(ElMessage.error).not.toHaveBeenCalled()
   })
 })

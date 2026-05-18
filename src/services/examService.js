@@ -13,12 +13,12 @@ export const examService = {
     return request.post('/exam/start', { paperId })
   },
 
-  saveDraft(payload) {
-    return request.put('/exam/draft', payload)
+  saveDraft(payload, config) {
+    return request.put('/exam/draft', payload, config)
   },
 
-  submitExam(payload) {
-    return request.post('/exam/submit', payload)
+  submitExam(payload, config) {
+    return request.post('/exam/submit', payload, config)
   },
 
   getExamResult(recordId) {

@@ -34,7 +34,7 @@ const examTitle = computed(() => {
 const fetchExamInfo = async () => {
   const examId = route.params.id
   if (!examId) {
-    ElMessage.error('缺少试卷 ID')
+    ElMessage.error('无法打开试卷，请返回列表重新选择')
     return
   }
 
@@ -43,8 +43,8 @@ const fetchExamInfo = async () => {
     const res = await examService.getExamList()
     const list = Array.isArray(res.data) ? res.data : []
     examInfo.value = list.find((exam) => String(exam.id) === String(examId)) || null
-  } catch (error) {
-    ElMessage.error('获取试卷信息失败，稍后重试')
+  } catch {
+    examInfo.value = null
   } finally {
     loading.value = false
   }

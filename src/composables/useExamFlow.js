@@ -5,6 +5,14 @@ import { useExamSessionStore } from '@/stores/examSession'
 import { useExamAnswerStore } from '@/stores/examAnswer'
 import { useExamTimer } from '@/composables/useExamTimer'
 
+const getSubmitErrorMessage = (error) => {
+  if (error?.message === 'Missing recordId in submit response') {
+    return '请勿重复提交，请稍后再试'
+  }
+
+  return error?.response?.data?.message || '提交失败，请重试'
+}
+
 /**
  * 考试流程控制 composable。
  * 封装开始考试、提交试卷、自动切换阶段等流程逻辑，
@@ -64,7 +72,7 @@ export function useExamFlow() {
       }
       await router.push('/exam/record/' + recordId + '/result')
     } catch (error) {
-      ElMessage.error('提交失败，请重试')
+      ElMessage.error(getSubmitErrorMessage(error))
       throw error
     } finally {
       submitting.value = false

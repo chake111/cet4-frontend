@@ -28,7 +28,7 @@ export function useExamResult(recordId) {
   const fetchResult = async () => {
     const id = recordId.value
     if (!id) {
-      ElMessage.error('缺少考试记录 ID')
+      ElMessage.error('无法打开考试报告，请从考试记录重新进入')
       loading.value = false
       return
     }
@@ -38,7 +38,6 @@ export function useExamResult(recordId) {
       const res = await examService.getExamResult(id)
       result.value = res?.data ?? res ?? {}
     } catch {
-      ElMessage.error('获取结果失败，请稍后重试')
       result.value = {}
     } finally {
       loading.value = false

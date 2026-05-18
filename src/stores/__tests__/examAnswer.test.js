@@ -54,12 +54,15 @@ describe('useExamAnswerStore', () => {
       const store = useExamAnswerStore()
       store.saveAnswer({ stage: 'writing', questionId: 'q1', value: 'My essay' })
 
-      expect(examService.saveDraft).toHaveBeenCalledWith({
-        paperId: 'paper-123',
-        stage: 'writing',
-        questionId: 'q1',
-        answer: 'My essay',
-      })
+      expect(examService.saveDraft).toHaveBeenCalledWith(
+        {
+          paperId: 'paper-123',
+          stage: 'writing',
+          questionId: 'q1',
+          answer: 'My essay',
+        },
+        { suppressErrorMessage: true }
+      )
     })
 
     it('should clear draftSaveError on successful save', async () => {

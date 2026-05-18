@@ -134,6 +134,44 @@ describe('useExamFlow', () => {
       expect(ElMessage.error).toHaveBeenCalledWith('提交失败，请重试')
     })
 
+    it('should show backend submit failure message when available', async () => {
+      const sessionStore = useExamSessionStore()
+      sessionStore.$patch({ examId: 'paper-123', isSubmitted: false, isLoading: false })
+
+      examService.submitExam.mockRejectedValue({
+        response: {
+          data: {
+            message: '请勿重复提交，请稍后再试',
+          },
+        },
+      })
+
+      const { submitExamAndExit } = useExamFlow()
+      await expect(submitExamAndExit()).rejects.toMatchObject({
+        response: {
+          data: {
+            message: '请勿重复提交，请稍后再试',
+          },
+        },
+      })
+
+      expect(ElMessage.error).toHaveBeenCalledWith('请勿重复提交，请稍后再试')
+    })
+
+    it('should show duplicate submit message when no new recordId is available', async () => {
+      const sessionStore = useExamSessionStore()
+      sessionStore.$patch({ examId: 'paper-123', isSubmitted: false, isLoading: false })
+
+      examService.submitExam.mockResolvedValue({
+        data: {},
+      })
+
+      const { submitExamAndExit } = useExamFlow()
+      await expect(submitExamAndExit()).rejects.toThrow('Missing recordId in submit response')
+
+      expect(ElMessage.error).toHaveBeenCalledWith('请勿重复提交，请稍后再试')
+    })
+
     it('should not submit when already submitting', async () => {
       const { submitExamAndExit, submitting } = useExamFlow()
       // Manually set submitting to true
@@ -353,7 +391,8 @@ describe('useExamFlow', () => {
             q4: 'C',
             q5: 'translation answer',
           }),
-        })
+        }),
+        { suppressErrorMessage: true }
       )
     })
   })

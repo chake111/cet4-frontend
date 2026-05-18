@@ -58,10 +58,13 @@ const handleRegister = async () => {
   loading.value = true
 
   try {
-    const res = await authService.register({
-      username: form.username,
-      password: form.password,
-    })
+    const res = await authService.register(
+      {
+        username: form.username,
+        password: form.password,
+      },
+      { suppressErrorMessage: true }
+    )
 
     if (res.code === 200) {
       ElMessage.success('注册成功')

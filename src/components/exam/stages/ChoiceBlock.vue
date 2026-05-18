@@ -28,6 +28,7 @@ defineEmits(['update-answer'])
   <div class="question-list">
     <div v-for="question in questions" :key="question.id" class="question-block">
       <div class="question-no">Q{{ question.questionNo }}</div>
+      <p v-if="question.content?.stem" class="question-stem">{{ question.content.stem }}</p>
       <QuestionOptionList
         :model-value="answers[question.id] || ''"
         :options="question.content?.options || []"
@@ -79,6 +80,14 @@ defineEmits(['update-answer'])
   color: var(--c-accent);
 }
 
+.question-stem {
+  margin: 0 0 14px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--c-text-primary);
+  white-space: pre-wrap;
+}
+
 @media (max-width: 720px) {
   .passage-box {
     max-width: 100%;
@@ -99,6 +108,11 @@ defineEmits(['update-answer'])
   .passage-text {
     font-size: 13px;
     line-height: 1.7;
+  }
+
+  .question-stem {
+    font-size: 13px;
+    line-height: 1.6;
   }
 }
 </style>

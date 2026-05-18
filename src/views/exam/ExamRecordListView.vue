@@ -1,7 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
 import { useBackTop } from '@/composables/useBackTop'
 import { examService } from '@/services/examService'
 import { formatDateTime, formatDurationText } from '@/utils/date'
@@ -19,8 +18,8 @@ const fetchRecords = async () => {
   try {
     const res = await examService.getExamRecords()
     records.value = Array.isArray(res.data) ? res.data : []
-  } catch (error) {
-    ElMessage.error('获取考试记录失败，请稍后重试')
+  } catch {
+    records.value = []
   } finally {
     loading.value = false
   }

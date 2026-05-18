@@ -229,6 +229,13 @@ describe('useExamSessionStore', () => {
       const result = await store.submitExam({ 1: 'A' })
       expect(store.isSubmitted).toBe(true)
       expect(result).toEqual({ data: { recordId: 'rec-1' } })
+      expect(examService.submitExam).toHaveBeenCalledWith(
+        {
+          paperId: 'paper-123',
+          answers: { 1: 'A' },
+        },
+        { suppressErrorMessage: true }
+      )
     })
 
     it('should not submit when already submitted', async () => {

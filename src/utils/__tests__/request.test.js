@@ -152,6 +152,18 @@ describe('request (axios instance)', () => {
       expect(ElMessage.error).toHaveBeenCalledWith('服务器错误')
     })
 
+    it('should show backend message on 500 status when available', async () => {
+      const error = {
+        response: {
+          status: 500,
+          data: { message: '试卷已经提交，请勿重复提交' },
+        },
+      }
+
+      await expect(request.interceptors.response.handlers[0].rejected(error)).rejects.toBe(error)
+      expect(ElMessage.error).toHaveBeenCalledWith('试卷已经提交，请勿重复提交')
+    })
+
     it('should show custom message from response data for other errors', async () => {
       const error = {
         response: {
@@ -174,6 +186,21 @@ describe('request (axios instance)', () => {
 
       await expect(request.interceptors.response.handlers[0].rejected(error)).rejects.toBe(error)
       expect(ElMessage.error).toHaveBeenCalledWith('请求失败')
+    })
+
+    it('should suppress global error message when configured', async () => {
+      const error = {
+        config: {
+          suppressErrorMessage: true,
+        },
+        response: {
+          status: 500,
+          data: { message: '由业务层展示' },
+        },
+      }
+
+      await expect(request.interceptors.response.handlers[0].rejected(error)).rejects.toBe(error)
+      expect(ElMessage.error).not.toHaveBeenCalled()
     })
   })
 
