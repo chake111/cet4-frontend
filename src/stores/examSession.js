@@ -117,10 +117,13 @@ export const useExamSessionStore = defineStore(
 
       isLoading.value = true
       try {
-        const response = await examService.submitExam({
-          paperId: examId.value,
-          answers: allAnswers,
-        })
+        const response = await examService.submitExam(
+          {
+            paperId: examId.value,
+            answers: allAnswers,
+          },
+          { suppressErrorMessage: true }
+        )
 
         isSubmitted.value = true
         return response

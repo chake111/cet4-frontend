@@ -30,7 +30,7 @@ export const useExamAnswerStore = defineStore(
     const debouncedSaveDraft = debounce(
       (draftPayload) => {
         examService
-          .saveDraft(draftPayload)
+          .saveDraft(draftPayload, { suppressErrorMessage: true })
           .then(() => {
             draftSaveError.value = null
           })

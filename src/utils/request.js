@@ -26,9 +26,12 @@ request.interceptors.response.use(
   (response) => response.data,
   async (error) => {
     const userStore = useUserStore()
+    const shouldShowErrorMessage = !error.config?.suppressErrorMessage
 
     if (!error.response) {
-      ElMessage.error('网络连接失败')
+      if (shouldShowErrorMessage) {
+        ElMessage.error('网络连接失败')
+      }
       return Promise.reject(error)
     }
 
@@ -39,12 +42,18 @@ request.interceptors.response.use(
     if (status === 401 || code === 401) {
       userStore.logout()
       await router.push('/login')
-    } else if (status === 403) {
-      ElMessage.error('没有访问权限')
-    } else if (status === 500) {
-      ElMessage.error('服务器错误')
-    } else {
-      ElMessage.error(message || '请求失败')
+    }
+
+    if (shouldShowErrorMessage) {
+      if (message) {
+        ElMessage.error(message)
+      } else if (status === 403) {
+        ElMessage.error('没有访问权限')
+      } else if (status === 500) {
+        ElMessage.error('服务器错误')
+      } else if (status !== 401 && code !== 401) {
+        ElMessage.error('请求失败')
+      }
     }
 
     return Promise.reject(error)

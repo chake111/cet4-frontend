@@ -24,10 +24,13 @@ const handleLogin = async () => {
   loading.value = true
 
   try {
-    const res = await authService.login({
-      username: form.username,
-      password: form.password,
-    })
+    const res = await authService.login(
+      {
+        username: form.username,
+        password: form.password,
+      },
+      { suppressErrorMessage: true }
+    )
 
     if (res.code === 200 && res.data?.token) {
       userStore.setToken(res.data.token)

@@ -1,7 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
 import PageTopBar from '@/components/layout/PageTopBar.vue'
 import { examService } from '@/services/examService'
 import { useUserStore } from '@/stores/user'
@@ -17,8 +16,8 @@ const fetchExamList = async () => {
   try {
     const res = await examService.getExamList()
     examList.value = Array.isArray(res.data) ? res.data : []
-  } catch (error) {
-    ElMessage.error('获取试卷列表失败，稍后重试')
+  } catch {
+    examList.value = []
   } finally {
     loading.value = false
   }
